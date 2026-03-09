@@ -118,9 +118,9 @@ function renderFeed() {
                 <div class="p-6">
                     <div class="flex items-center justify-between mb-4">
                         <div class="flex items-center gap-3">
-                            <img src="/IMG/Logo.jpeg" class="w-10 h-10 rounded-full border border-slate-100">
+                            <img id="dashPfp" src="/IMG/Logo.jpeg" class="w-10 h-10 rounded-full border border-slate-100">
                             <div>
-                                <h4 class="text-xs font-black text-slate-800 uppercase">${post.author}</h4>
+                                <h4 id="dashName" class="text-xs font-black text-slate-800 uppercase">${post.author}</h4>
                                 <p class="text-[9px] font-bold text-slate-400 uppercase">${post.timestamp}</p>
                             </div>
                         </div>
