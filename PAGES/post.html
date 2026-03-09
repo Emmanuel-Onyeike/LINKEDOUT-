@@ -41,13 +41,13 @@
             
             <div class="p-6 flex items-center gap-4">
                 <div class="relative">
-                    <img src="/IMG/Logo.jpeg" class="w-12 h-12 rounded-full object-cover border-2 border-slate-100">
+                    <img id="dashPfp"  src="/IMG/Logo.jpeg" class="w-12 h-12 rounded-full object-cover border-2 border-slate-100">
                     <div id="statusBadge" class="hidden absolute -right-1 -top-1 bg-cyan-500 text-white w-4 h-4 rounded-full border-2 border-white flex items-center justify-center">
                         <i class="fa-solid fa-z text-[6px]"></i>
                     </div>
                 </div>
                 <div>
-                    <h3 class="text-sm font-black text-slate-800 uppercase">Loafer #1</h3>
+                    <h3 id="dashName" class="text-sm font-black text-slate-800 uppercase">Loafer #1</h3>
                     <div class="flex items-center gap-1 text-[9px] font-black text-slate-400 uppercase tracking-tighter">
                         <i class="fa-solid fa-earth-americas text-cyan-500"></i> Public
                     </div>
@@ -93,5 +93,6 @@
     <input type="file" id="fileInput" class="hidden" accept="image/*" onchange="previewImage(event)">
 
     <script src="/SCRIPTS/post.js"></script>
+    <script src="/SCRIPTS/gloabl.js"></script>
 </body>
 </html>
