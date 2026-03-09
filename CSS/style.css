@@ -1,0 +1,55 @@
+/* Custom background for the "Low Energy" feel */
+.bg-soft-blue {
+    background: radial-gradient(circle at top right, #f0f7ff 0%, #ffffff 100%);
+}
+
+/* Modal Animation */
+#globalModal:not(.hidden) #modalContent {
+    animation: modalSlideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes modalSlideUp {
+    from {
+        transform: translateY(20px) scale(0.95);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+}
+
+/* Typography polish */
+h1 {
+    letter-spacing: -0.04em;
+}
+
+.logo {
+    letter-spacing: -0.06em;
+}
+/* Sidebar Modal Animation */
+#sideMenu.active {
+    display: block;
+}
+
+#sideMenu.active #sideMenuContent {
+    transform: translateX(0);
+}
+
+/* Ensure the central modal still works correctly */
+#globalModal:not(.hidden) {
+    display: flex;
+}
+.bg-soft-blue {
+    background-color: #ffffff;
+    background-image: radial-gradient(at 0% 0%, hsla(210,100%,98%,1) 0, transparent 50%), 
+                      radial-gradient(at 100% 100%, hsla(210,100%,98%,1) 0, transparent 50%);
+}
+
+#sideMenu.active #sideMenuContent {
+    transform: translateX(0);
+}
+/* Ensure text doesn't overlap the eye icon */
+input[type="password"], input[type="text"] {
+    padding-right: 3rem;
+}

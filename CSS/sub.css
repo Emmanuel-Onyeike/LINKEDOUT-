@@ -1,0 +1,100 @@
+/* sub.css - LinkedOut Terminal Styling */
+
+:root {
+    --cyan-primary: #06b6d4;
+    --slate-900: #0f172a;
+    --slate-50: #f8fafc;
+}
+
+/* 1. TERMINAL ENTRANCE EFFECT */
+body {
+    animation: terminalEntrance 0.7s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+@keyframes terminalEntrance {
+    from { 
+        opacity: 0; 
+        filter: brightness(1.5) blur(15px);
+        transform: scale(1.02);
+    }
+    to { 
+        opacity: 1; 
+        filter: brightness(1) blur(0);
+        transform: scale(1);
+    }
+}
+
+/* 2. PRICE NUMBER REFRESH */
+#studentPrice, #proPrice {
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+/* 3. INDUSTRIAL TOGGLE PHYSICS */
+#billingToggle {
+    border: 2px solid transparent;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+#billingToggle div {
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+#billingToggle:hover {
+    border-color: var(--cyan-primary);
+    box-shadow: 0 0 15px rgba(6, 182, 212, 0.15);
+}
+
+/* 4. GRID NODE (CARD) HOVER STATES */
+.group {
+    transition: all 0.5s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+.group:hover {
+    transform: translateY(-8px);
+}
+
+/* Elite Node Pulse */
+.bg-slate-900.group:hover {
+    box-shadow: 0 30px 60px -12px rgba(6, 182, 212, 0.3);
+    border-color: rgba(6, 182, 212, 0.4);
+}
+
+/* 5. PROTOCOL BUTTONS */
+button {
+    transition: all 0.3s ease;
+}
+
+button:active {
+    transform: scale(0.95);
+    filter: brightness(1.2);
+}
+
+/* 6. CENTERED GLOBAL MODAL */
+#globalModal {
+    transition: backdrop-filter 0.3s ease;
+}
+
+#globalModal .animate-modal-in {
+    animation: modalSpring 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+@keyframes modalSpring {
+    from { 
+        opacity: 0; 
+        transform: scale(0.5) translateY(40px); 
+    }
+    to { 
+        opacity: 1; 
+        transform: scale(1) translateY(0); 
+    }
+}
+
+/* 7. SCROLLBARS PURGE */
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}

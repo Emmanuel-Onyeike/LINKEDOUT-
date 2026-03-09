@@ -1,0 +1,70 @@
+/* notifications.css */
+
+.filter-btn {
+    padding: 10px 20px;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    font-size: 9px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #94a3b8;
+    transition: all 0.2s ease;
+}
+
+.filter-btn:hover {
+    border-color: #0f172a;
+    color: #0f172a;
+}
+
+.filter-btn.active {
+    background: #0f172a;
+    color: white;
+    border-color: #0f172a;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.1);
+}
+
+#notifFeed {
+    animation: fadeIn 0.6s ease-out forwards;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Filter Button Styling */
+.filter-btn {
+    padding: 10px 24px;
+    border-radius: 100px;
+    background: white;
+    border: 1.5px solid #e2e8f0;
+    font-size: 9px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: #94a3b8;
+    transition: all 0.3s ease;
+}
+
+.filter-btn.active, .filter-btn:hover {
+    background: #0f172a;
+    border-color: #0f172a;
+    color: white;
+    box-shadow: 0 10px 20px -5px rgba(15, 23, 42, 0.2);
+}
+
+/* Modal Specifics */
+@keyframes modal-reveal {
+    from { transform: scale(0.9) translateY(30px); opacity: 0; }
+    to { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+.animate-modal {
+    animation: modal-reveal 0.5s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+}
+
+#alertModal.active {
+    display: flex !important;
+}

@@ -1,0 +1,52 @@
+/* comm.css */
+
+/* Custom Bounce for the Centered Modal */
+@keyframes modalBounce {
+    0% { transform: scale(0.8); opacity: 0; }
+    70% { transform: scale(1.05); }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.modal-bounce {
+    animation: modalBounce 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Card Hover Effects */
+.community-card {
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.community-card:hover {
+    transform: translateY(-8px);
+    border-color: #22d3ee; /* cyan-400 */
+    box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.05);
+}
+
+/* Trending Item Animation */
+.trend-item {
+    border-left: 2px solid transparent;
+    padding-left: 12px;
+    transition: all 0.3s ease;
+}
+
+.trend-item:hover {
+    border-left-color: #22d3ee;
+    transform: translateX(5px);
+}
+/* comm.css */
+
+.spinning {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Optional: Make the button look disabled while loading */
+.loading-active {
+    pointer-events: none;
+    opacity: 0.6;
+    cursor: wait;
+}

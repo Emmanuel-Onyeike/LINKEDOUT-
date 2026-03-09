@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notifications | LinkedOut</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/CSS/notifications.css">
+    <link rel="icon" type="image/webp" href="/IMG/Logo.jpeg" />
+</head>
+<body class="bg-slate-50 font-sans antialiased text-slate-900">
+
+    <nav class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-100">
+        <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <a href="/PAGES/dashboard.html" class="text-slate-400 hover:text-slate-900 transition">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </a>
+                <h1 class="text-sm font-black uppercase tracking-widest text-slate-800">Alert Center</h1>
+            </div>
+            <button onclick="clearAll()" class="text-[9px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-900 transition">Clear All</button>
+        </div>
+    </nav>
+
+    <main class="max-w-3xl mx-auto px-6 py-12">
+        <div class="relative mb-8">
+            <i class="fa-solid fa-magnifying-glass absolute left-6 top-1/2 -translate-y-1/2 text-slate-400"></i>
+            <input type="text" id="notifSearch" placeholder="SEARCH ALERTS..." 
+                   class="w-full bg-white border border-slate-200 rounded-[20px] py-4 pl-14 pr-6 text-[10px] font-black uppercase tracking-widest focus:border-slate-900 outline-none transition-all shadow-sm">
+        </div>
+
+        <div class="flex flex-wrap gap-3 mb-12">
+            <button class="filter-btn active">All</button>
+            <button class="filter-btn">Jobs</button>
+            <button class="filter-btn">Messages</button>
+            <button class="filter-btn">Verified</button>
+            <button class="filter-btn">Tiers</button>
+        </div>
+
+        <div id="notifFeed" class="flex flex-col items-center justify-center py-32 px-10 bg-white border border-dashed border-slate-300 rounded-[40px] text-center">
+            <div class="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-6">
+                <i class="fa-solid fa-bell-slash text-slate-200 text-3xl"></i>
+            </div>
+            <h3 class="text-xs font-black uppercase tracking-widest text-slate-800 mb-2">No Notifications</h3>
+            <p class="text-[11px] font-medium text-slate-500 leading-relaxed max-w-xs">
+                Your activity log is currently clear. We'll alert you when there are updates to your professional profile.
+            </p>
+        </div>
+        
+    </main>
+
+    <script src="/SCRIPTS/notifications.js"></script>
+</body>
+</html>

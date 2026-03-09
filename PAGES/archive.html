@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Archive Vault | LinkedOut</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/CSS/archive.css">
+    <link rel="icon" type="image/webp" href="/IMG/Logo.jpeg" />
+</head>
+<body class="bg-slate-50 font-sans antialiased text-slate-900 overflow-hidden">
+
+    <div id="deploymentOverlay" class="fixed inset-0 z-[200] bg-white/90 backdrop-blur-xl flex items-center justify-center p-8">
+        <div class="max-w-sm w-full text-center">
+            <div class="w-20 h-20 bg-slate-900 rounded-[24px] flex items-center justify-center mx-auto mb-10 shadow-2xl shadow-slate-200">
+                <i class="fa-solid fa-code-branch text-white text-2xl animate-pulse"></i>
+            </div>
+            <h2 class="text-xs font-black uppercase tracking-[0.4em] text-slate-900 mb-4">Signal Optimization</h2>
+            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
+                LinkedOut Engineers are currently building the <br> 
+                <span class="text-blue-600 underline underline-offset-4">Deep Archive Protocol</span>.
+            </p>
+            
+            <div class="mt-10 h-[2px] w-32 mx-auto bg-slate-100 relative overflow-hidden">
+                <div class="absolute inset-0 bg-blue-600 w-1/2 animate-shimmer"></div>
+            </div>
+
+            <button onclick="window.location.href='/PAGES/dashboard.html'" class="mt-12 text-[9px] font-black uppercase tracking-[0.3em] text-slate-400 hover:text-slate-900 transition-all">
+                <i class="fa-solid fa-arrow-left mr-2"></i> Return to Terminal
+            </button>
+        </div>
+    </div>
+
+    <main class="max-w-4xl mx-auto px-6 py-20 opacity-10 pointer-events-none">
+        <header class="mb-16">
+            <h1 class="text-4xl font-black uppercase italic tracking-tighter text-slate-900">Historical Vault</h1>
+            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em] mt-2">All past professional transmissions</p>
+        </header>
+
+        <div id="archiveFeed" class="space-y-4">
+            </div>
+    </main>
+
+    <script src="/SCRIPTS/archive.js"></script>
+</body>
+</html>

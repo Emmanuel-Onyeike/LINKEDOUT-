@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>For You | The Colony</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/CSS/foryou.css">
+    <link rel="stylesheet" href="/SCRIPTS/alerts.js">
+    <link rel="icon" type="image/webp" href="/IMG/Logo.jpeg" />
+</head>
+<body class="bg-slate-50 font-sans antialiased text-slate-900">
+
+    <nav class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-100">
+        <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <a href="/PAGES/dashboard.html" class="text-slate-400 hover:text-slate-900 transition">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </a>
+                <h1 class="text-sm font-black uppercase tracking-widest text-slate-800">For You</h1>
+            </div>
+         
+        </div>
+    </nav>
+
+    <main class="max-w-5xl mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        <div class="lg:col-span-2 space-y-6" id="discoveryFeed">
+            <div id="foryouLoader" class="flex flex-col items-center py-32">
+                <div class="relative">
+                    <div class="w-12 h-12 border-4 border-slate-200 border-t-cyan-500 rounded-full animate-spin"></div>
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <div class="w-2 h-2 bg-slate-900 rounded-full animate-pulse"></div>
+                    </div>
+                </div>
+                <p class="text-[10px] font-black uppercase tracking-[0.2em] mt-6 text-slate-400">Syncing ...</p>
+            </div>
+
+            <div id="emptyState" class="hidden flex flex-col items-center py-20 px-10 text-center bg-white border border-dashed border-slate-300 rounded-[40px] animate-slide-up">
+                <div class="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-6">
+                    <i class="fa-solid fa-satellite-dish text-slate-300 text-3xl"></i>
+                </div>
+                <h3 class="text-xs font-black uppercase tracking-widest text-slate-800 mb-2">Signal Lost</h3>
+                <p class="text-[11px] font-medium text-slate-500 leading-relaxed max-w-xs">We couldn't reach the Peerlist frequency. Check your connection or try again later.</p>
+                <button onclick="location.reload()" class="mt-8 px-8 py-3 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-cyan-600 transition">Retry Sync</button>
+            </div>
+
+            </div>
+
+            <aside class="hidden lg:block space-y-6">
+                <div class="bg-white rounded-[32px] p-6 border border-slate-200 shadow-sm">
+                    <h3 class="text-[10px] font-black uppercase tracking-widest mb-6 text-slate-400">Trending Colonies</h3>
+                    <div id="trendingList" class="space-y-4">
+                        <p class="text-[9px] font-bold text-slate-300 uppercase italic">Scanning frequencies...</p>
+                    </div>
+                </div>
+            
+                <div class="bg-slate-900 rounded-[32px] p-6 text-white shadow-xl">
+                    <h3 class="text-[10px] font-black uppercase tracking-widest mb-4 opacity-60">Elite Loafers</h3>
+                    <div id="suggestedUsers" class="space-y-4 text-center py-4">
+                         <i class="fa-solid fa-screwdriver-wrench text-slate-700 text-xl mb-2"></i>
+                         <p class="text-[8px] font-black uppercase tracking-widest opacity-40">System Update in Progress</p>
+                    </div>
+                </div>
+            </aside>
+    </main>
+
+    <div id="globalModal" class="fixed inset-0 z-[100] hidden items-center justify-center bg-slate-900/40 backdrop-blur-sm p-6">
+        <div class="bg-white w-full max-w-sm rounded-[40px] p-8 shadow-2xl animate-modal-in text-center">
+            <h2 id="modalTitle" class="text-xs font-black uppercase tracking-widest mb-2 text-slate-800"></h2>
+            <p id="modalBody" class="text-[11px] font-medium text-slate-500 leading-relaxed mb-6"></p>
+            <button onclick="closeGlobalModal()" class="w-full py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest">Acknowledged</button>
+        </div>
+    </div>
+
+    <script src="/SCRIPTS/foryou.js"></script>
+</body>
+</html>

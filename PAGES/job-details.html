@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Details | LinkedOut</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/CSS/job.css">
+    <link rel="icon" type="image/webp" href="/IMG/Logo.jpeg" />
+</head>
+<body class="bg-slate-50 font-sans antialiased text-slate-900 overflow-x-hidden">
+
+    <nav class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-100">
+        <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <a href="/PAGES/jobs.html" class="text-slate-400 hover:text-slate-900 transition">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </a>
+                <h1 class="text-sm font-black uppercase tracking-widest text-slate-800">Job Brief</h1>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-3xl mx-auto px-6 py-12">
+        <div id="detailsContainer" class="bg-white border border-slate-200 rounded-[40px] p-10 shadow-sm">
+            </div>
+    </main>
+
+    <div id="choiceModal" class="fixed inset-0 z-[100] hidden items-center justify-center bg-slate-900/60 backdrop-blur-sm p-6">
+        <div class="bg-white w-full max-w-md rounded-[40px] p-10 shadow-2xl scale-in">
+            <h2 class="text-xs font-black uppercase tracking-widest text-center mb-8">Select Submission Method</h2>
+            <div class="grid grid-cols-1 gap-4">
+                <button onclick="openManualSlide()" class="group p-6 border border-slate-100 rounded-3xl hover:border-slate-900 transition text-left">
+                    <i class="fa-solid fa-pen-to-square text-slate-400 group-hover:text-slate-900 mb-3 block"></i>
+                    <p class="text-[10px] font-black uppercase tracking-widest">Manual Entry</p>
+                    <p class="text-[8px] font-bold text-slate-400 mt-1">Type your resume directly into our terminal.</p>
+                </button>
+                <button onclick="triggerFilePicker()" class="group p-6 border border-slate-100 rounded-3xl hover:border-slate-900 transition text-left">
+                    <i class="fa-solid fa-file-pdf text-slate-400 group-hover:text-slate-900 mb-3 block"></i>
+                    <p class="text-[10px] font-black uppercase tracking-widest">Upload Document</p>
+                    <p class="text-[8px] font-bold text-slate-400 mt-1">PDF, Image, or File from Gallery.</p>
+                </button>
+                <input type="file" id="resumePicker" class="hidden" accept=".pdf,image/*">
+            </div>
+            <button onclick="closeChoiceModal()" class="w-full mt-6 text-[8px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-900">Cancel</button>
+        </div>
+    </div>
+
+    <div id="manualSlide" class="fixed inset-y-0 right-0 w-full max-w-lg bg-white shadow-[-20px_0_50px_rgba(0,0,0,0.05)] z-[110] translate-x-full transition-transform duration-500 ease-in-out p-10 overflow-y-auto">
+        <div class="flex justify-between items-center mb-10">
+            <h2 class="text-xs font-black uppercase tracking-widest">Manual Profile Entry</h2>
+            <button onclick="closeManualSlide()" class="text-slate-400 hover:text-slate-900"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        
+        <div class="space-y-6">
+            <div class="flex flex-col items-center mb-8">
+                <div class="w-24 h-24 bg-slate-50 rounded-full border-2 border-dashed border-slate-200 flex items-center justify-center overflow-hidden mb-3">
+                    <i class="fa-solid fa-camera text-slate-300"></i>
+                </div>
+                <p class="text-[8px] font-black uppercase text-slate-400 tracking-tighter">Profile Photo Required</p>
+            </div>
+            
+            <div>
+                <label class="text-[8px] font-black uppercase tracking-widest text-slate-400 ml-4">Full Name</label>
+                <input type="text" placeholder="E.G. EMMANUEL" class="w-full p-4 bg-slate-50 rounded-2xl border border-slate-100 text-[10px] font-bold outline-none focus:border-slate-900 transition-all">
+            </div>
+            <div>
+                <label class="text-[8px] font-black uppercase tracking-widest text-slate-400 ml-4">Experience Summary</label>
+                <textarea rows="6" placeholder="TELL US ABOUT YOUR SKILLS..." class="w-full p-4 bg-slate-50 rounded-2xl border border-slate-100 text-[10px] font-bold outline-none focus:border-slate-900 transition-all"></textarea>
+            </div>
+            
+            <button onclick="processFinalApplication('Manual')" class="w-full py-5 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-700 transition">Submit Professional Resume</button>
+        </div>
+    </div>
+
+    <script src="/SCRIPTS/alerts.js"></script>
+    <script>
+        let currentJob = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const jobData = localStorage.getItem('selectedJob');
+            if (!jobData) return window.location.href = 'jobs.html';
+            
+            currentJob = JSON.parse(jobData);
+            renderDetails(currentJob);
+            checkApplicationStatus();
+        });
+
+        function renderDetails(job) {
+            const container = document.getElementById('detailsContainer');
+            container.innerHTML = `
+                <div class="mb-8">
+                    <span class="${job.source === 'upwork' ? 'upwork-tag' : 'local-tag'} mb-4 inline-block">${job.source.toUpperCase()}</span>
+                    <h2 class="text-3xl font-black uppercase italic tracking-tighter mb-2">${job.title}</h2>
+                    <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">${job.company}</p>
+                </div>
+                <div class="grid grid-cols-2 gap-6 mb-10 py-6 border-y border-slate-100">
+                    <div><p class="text-[8px] font-black text-slate-400 uppercase">Budget</p><p class="text-xl font-black">${job.budget}</p></div>
+                    <div><p class="text-[8px] font-black text-slate-400 uppercase">Type</p><p class="text-xl font-black">${job.type}</p></div>
+                </div>
+                <div class="mb-10"><p class="text-[8px] font-black uppercase text-slate-400 mb-4">Description</p><p class="text-sm text-slate-600 leading-relaxed">${job.desc}</p></div>
+                <button id="applyBtn" onclick="openChoiceModal()" class="w-full py-5 bg-slate-900 text-white rounded-[24px] text-[10px] font-black uppercase tracking-widest hover:bg-slate-700 transition">Apply for Position</button>
+            `;
+        }
+
+        // Logic to check if user already applied
+        function checkApplicationStatus() {
+            const applications = JSON.parse(localStorage.getItem('my_applications')) || [];
+            const hasApplied = applications.some(app => app.jobTitle === currentJob.title);
+            
+            if (hasApplied) {
+                const btn = document.getElementById('applyBtn');
+                btn.disabled = true;
+                btn.classList.replace('bg-slate-900', 'bg-slate-100');
+                btn.classList.add('text-slate-400', 'cursor-not-allowed');
+                btn.innerHTML = `<i class="fa-solid fa-lock mr-2"></i> Application Submitted`;
+                btn.onclick = null;
+            }
+        }
+
+        function openChoiceModal() { document.getElementById('choiceModal').classList.replace('hidden', 'flex'); }
+        function closeChoiceModal() { document.getElementById('choiceModal').classList.replace('flex', 'hidden'); }
+        
+        function openManualSlide() { 
+            closeChoiceModal();
+            document.getElementById('manualSlide').classList.remove('translate-x-full'); 
+        }
+        function closeManualSlide() { document.getElementById('manualSlide').classList.add('translate-x-full'); }
+
+        function triggerFilePicker() {
+            const picker = document.getElementById('resumePicker');
+            picker.click();
+            picker.onchange = () => {
+                if (picker.files.length > 0) {
+                    closeChoiceModal();
+                    processFinalApplication('File Upload (' + picker.files[0].name + ')');
+                }
+            }
+        }
+
+        function processFinalApplication(method) {
+            const container = document.getElementById('detailsContainer');
+            
+            // 1. Lock Application in Storage
+            const applications = JSON.parse(localStorage.getItem('my_applications')) || [];
+            applications.push({ jobTitle: currentJob.title, date: new Date().toISOString() });
+            localStorage.setItem('my_applications', JSON.stringify(applications));
+
+            // 2. Trigger Global Alert
+            if (window.pushNotification) {
+                window.pushNotification(
+                    "Application Success",
+                    `Profile submitted for ${currentJob.title} via ${method}.`,
+                    "Jobs"
+                );
+            }
+
+            // 3. UI Update
+            closeManualSlide();
+            container.innerHTML = `
+                <div class="py-12 text-center animate-fade-in">
+                    <div class="w-20 h-20 bg-green-50 text-green-500 rounded-full flex items-center justify-center mx-auto mb-6"><i class="fa-solid fa-check text-3xl"></i></div>
+                    <h2 class="text-xl font-black uppercase italic tracking-tighter mb-2">Transmission Complete</h2>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-8">Submission Method: ${method}</p>
+                    <a href="jobs.html" class="block w-full py-4 border border-slate-200 rounded-[20px] text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition">Return to Board</a>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>

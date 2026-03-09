@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>LinkedOut | Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/CSS/dashboard.css">
+    <link rel="icon" type="image/webp" href="/IMG/Logo.jpeg" />
+    <link rel="stylesheet" href="/SCRIPTS/alerts.js">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+</head>
+<body class="bg-[#f3f2ef] min-h-screen">
+
+    <header class="bg-[#1a2533] text-white px-4 sticky top-0 z-50 shadow-md pt-[env(safe-area-inset-top)]">
+        <div class="max-w-6xl mx-auto flex items-center justify-between w-full h-16">
+            
+            <div class="flex items-center gap-4">
+                <div class="flex items-center gap-0 group cursor-pointer shrink-0">
+                    <span class="text-cyan-600  font-black text-2xl tracking-tighter hidden sm:block">
+                        Linked
+                    </span>
+                    <div class="ml-0.5 w-9 h-9 bg-cyan-600 text-white px-1 rounded font-black text-sm rounded-md flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-105">
+                        <span class="bg-cyan-600 text-white px-1 rounded font-black text-sm leading-none" style="letter-spacing: -1px;">
+                            Out
+                        </span>
+                    </div>
+                </div>
+    
+                <div class="hidden md:flex items-center bg-slate-800/50 border border-slate-700 rounded-lg px-3 py-1.5 w-64 transition-all focus-within:bg-white focus-within:w-80 group">
+                    <i class="fa-solid fa-magnifying-glass text-slate-400 group-focus-within:text-slate-600 mr-2 text-sm"></i>
+                    <input type="text" placeholder="Search for loafs..." class="bg-transparent border-none outline-none text-xs font-bold text-white focus:text-slate-900 w-full placeholder:text-slate-500">
+                </div>
+            </div>
+    
+            <div class="flex items-center gap-2 sm:gap-4">
+                
+                <div class="flex items-center gap-1 border-r border-slate-700 pr-2 sm:pr-4">
+                    <button id="themeToggle" onclick="toggleDarkMode()" class="text-slate-400 hover:text-cyan-500 transition p-2">
+                        <i id="themeIcon" class="fa-solid fa-moon text-lg"></i>
+                    </button>
+                    <button onclick="toggleLoafMenu()" class="text-cyan-400 flex items-center gap-2 group px-3 py-1.5 bg-slate-800/50 rounded-xl border border-slate-700 transition-all hover:bg-slate-700/50">
+                        <i class="fa-solid fa-table-cells text-lg"></i>
+                        <span class="text-[10px] font-black uppercase tracking-wider hidden xs:block">Suites</span>
+                    </button>
+                </div>
+    
+                <div class="flex items-center gap-2">
+                    <button onclick="window.location.href='/PAGES/settings.html'" class="text-slate-400 hover:text-cyan-500 transition p-2">
+                        <i class="fa-solid fa-gear text-lg"></i>
+                    </button>
+                    <button onclick="window.location.href='/PAGES/notifications.html'" class="text-slate-400 hover:text-cyan-500 transition p-2 relative group">
+                        <i class="fa-solid fa-bell text-lg"></i>
+                        <span class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-red-500"></span>
+                    </button>
+                    <div class="relative">
+                        <button onclick="toggleProfileMenu()" class="flex items-center focus:outline-none">
+                            <img id="dashPfp"  src="/IMG/Logo.jpeg" class="w-9 h-9 rounded-full border-2 border-slate-500 object-cover shadow-lg hover:border-cyan-400 transition-all">
+                        </button>
+                
+                        <div id="profileDropdown" class="hidden absolute right-0 mt-4 w-48 bg-[#1a2533] rounded-2xl shadow-2xl border border-slate-700 overflow-hidden z-[70]">
+                            <div class="p-4 border-b border-slate-700 bg-slate-800/30">
+                                <p class="text-[10px] font-black text-white uppercase tracking-tighter">Loafer #1</p>
+                                <p class="text-[9px] text-cyan-400 font-bold uppercase">Pro Member</p>
+                            </div>
+                            <div class="p-2">
+                                <a href="profile.html" class="flex items-center gap-3 px-3 py-2 text-xs font-bold text-slate-300 hover:bg-slate-800 hover:text-white rounded-lg transition">
+                                    <i class="fa-solid fa-user w-4"></i> View Profile
+                                </a>
+                                <a href="settings.html" class="flex items-center gap-3 px-3 py-2 text-xs font-bold text-slate-300 hover:bg-slate-800 hover:text-white rounded-lg transition">
+                                    <i class="fa-solid fa-shield-halved w-4"></i> Privacy
+                                </a>
+                                <hr class="my-2 border-slate-700">
+                                <a href="/index.html" class="flex items-center gap-3 px-3 py-2 text-xs font-bold text-red-400 hover:bg-red-500/10 rounded-lg transition">
+                                    <i class="fa-solid fa-right-from-bracket w-4"></i> Sign Out
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+    
+        </div>
+    </header>
+
+    <div id="loafModalOverlay" class="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-[100] hidden items-center justify-center p-4">
+        <div id="loafDropdown" class="bg-[#1a2533] w-full max-w-sm rounded-[3rem] p-8 border border-slate-700 shadow-2xl scale-95 transition-transform duration-300">
+            <div class="flex justify-between items-center mb-8 px-2">
+                <h3 class="text-blue-400 text-sm font-black uppercase tracking-widest opacity-50">LinkedOut Suites</h3>
+                <button onclick="toggleLoafMenu()" class="text-slate-400 hover:text-white text-2xl">&times;</button>
+            </div>
+            
+            <div class="suites-grid">
+                <a href="dashboard.html" class="suite-item">
+                    <div class="icon-box"><i class="fa-solid fa-house"></i></div>
+                    <span>Home</span>
+                </a>
+                <a href="/PAGES/post.html" class="suite-item">
+                    <div class="icon-box"><i class="fa-solid fa-pen-to-square"></i></div>
+                    <span>Post</span>
+                </a>
+                <a href="/PAGES/community.html" class="suite-item">
+                    <div class="icon-box"><i class="fa-solid fa-users"></i></div>
+                    <span>Comm.</span>
+                </a>
+                <a href="/PAGES/foryou.html" class="suite-item">
+                    <div class="icon-box"><i class="fa-solid fa-star"></i></div>
+                    <span>For You</span>
+                </a>
+                <a href="trending.html" class="suite-item">
+                    <div class="icon-box"><i class="fa-solid fa-fire"></i></div>
+                    <span>Trends</span>
+                </a>
+                <a href="subscribe.html" class="suite-item">
+                    <div class="icon-box"><i class="fa-solid fa-gem"></i></div>
+                    <span>Sub</span>
+                </a>
+                <a href="recommendations.html" class="suite-item group">
+                    <div class="icon-box">
+                        <i class="fa-solid fa-wand-magic-sparkles transition-transform group-hover:rotate-12"></i>
+                    </div>
+                    <span class="text-[9px] font-black uppercase mt-1 tracking-wider">Recommend</span>
+                </a>
+                <a href="jobs.html" class="suite-item">
+                    <div class="icon-box"><i class="fa-solid fa-briefcase"></i></div>
+                    <span>Jobs</span>
+                </a>
+                <a href="archive.html" class="suite-item">
+                    <div class="icon-box">
+                        <i class="fa-solid fa-box-archive"></i>
+                    </div>
+                    <span class="text-[9px] font-black uppercase mt-1 tracking-wider">Archive</span>
+                </a>
+                <a href="chat.html" class="suite-item">
+                    <div class="icon-box"><i class="fa-solid fa-comment-dots"></i></div>
+                    <span>Chat</span>
+                </a>
+                <a href="profile.html" class="suite-item">
+                    <div class="icon-box"><i class="fa-solid fa-user-gear"></i></div>
+                    <span>Profile</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <main class="max-w-6xl mx-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+    
+        <aside class="lg:col-span-3 space-y-4">
+            <div class="feed-card overflow-hidden bg-white border border-slate-200 rounded-xl shadow-sm transition-all hover:shadow-md">
+    
+                <a href="profile.html" class="block group">
+                    <div class="h-16 bg-gradient-to-r from-slate-800 to-navy-deep group-hover:opacity-90 transition-opacity"></div>
+                    
+                    <div class="px-4 pb-4 text-center">
+                        <div class="relative -mt-8 mb-2 flex justify-center">
+                            <div class="relative">
+                                <img src="/IMG/Logo.jpeg" class="w-16 h-16 rounded-full border-4 border-white object-cover shadow-sm group-hover:border-cyan-400 transition-all">
+                                
+                                <div id="statusBadge" class="hidden absolute -right-1 -top-1 bg-cyan-500 text-white w-6 h-6 rounded-full border-2 border-white flex items-center justify-center shadow-sm animate-bounce">
+                                    <i class="fa-solid fa-z text-[10px]"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <h3 id="dashName" class="font-black text-slate-800 group-hover:text-cyan-600 transition-colors">Loafer #1</h3>
+                        <p id="dashRole" class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Professional Napper @ LinkedOut</p>
+                    </div>
+                    <div class="border-t border-slate-100 p-3 space-y-2 bg-slate-50/30">
+                        <div class="flex justify-between text-[10px] font-bold">
+                            <span class="text-slate-500 uppercase">Profile Viewers</span>
+                            <span class="text-cyan-600">0</span>
+                        </div>
+                        <div class="flex justify-between text-[10px] font-bold">
+                            <span class="text-slate-500 uppercase">Post Impressions</span>
+                            <span class="text-cyan-600">0</span>
+                        </div>
+                    </div>
+                </a>
+            
+                <a href="archive.html" class="block border-t border-slate-100 p-3 text-[10px] font-black text-slate-700 hover:bg-slate-100 transition-all uppercase tracking-tighter">
+                    <div class="flex items-center">
+                        <i class="fa-solid fa-bookmark mr-2 text-slate-400"></i> 
+                        <span>My Items</span>
+                    </div>
+                </a>
+            </div>
+    
+            <div id="myCommunitiesCard" class="hidden lg:block feed-card p-4 bg-white border border-slate-200 rounded-xl shadow-sm max-h-[450px] flex flex-col">
+                <div class="flex justify-between items-center mb-4 shrink-0">
+                    <h3 class="text-[10px] font-black text-slate-800 uppercase tracking-widest">My Communities</h3>
+                    <a href="/PAGES/community.html" class="w-6 h-6 flex items-center justify-center rounded-full bg-slate-50 text-slate-400 hover:text-white hover:bg-cyan-500 transition-all duration-300">
+                        <i class="fa-solid fa-plus text-[10px]"></i>
+                    </a>
+                </div>
+            
+                <div id="sidebarCommList" class="overflow-y-auto pr-1 custom-scrollbar flex-grow space-y-3">
+                    <div id="emptyCommState" class="py-6 px-2 text-center border-2 border-dashed border-slate-100 rounded-2xl">
+                        <div class="text-3xl mb-2 grayscale opacity-30">☁️</div>
+                        <p class="text-[11px] font-black text-slate-400 uppercase tracking-tight">Nothing here yet</p>
+                        <p class="text-[9px] text-slate-400 italic mt-1 leading-tight px-4">
+                            You haven't joined any loafing circles. Your social battery is safe.
+                        </p>
+                    </div>
+            
+                    <div id="commSkeleton" class="mt-4 space-y-3 opacity-30">
+                        <div class="flex items-center gap-2">
+                            <div class="w-6 h-6 bg-slate-100 rounded animate-pulse"></div>
+                            <div class="h-2 w-24 bg-slate-50 rounded-full animate-pulse"></div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="w-6 h-6 bg-slate-100 rounded animate-pulse"></div>
+                            <div class="h-2 w-16 bg-slate-50 rounded-full animate-pulse"></div>
+                        </div>
+                    </div>
+                </div>
+            
+                <a href="/PAGES/community.html" class="block w-full mt-4 pt-3 border-t border-slate-100 text-[10px] text-center font-black text-slate-400 uppercase hover:text-cyan-600 transition tracking-widest shrink-0">
+                    Discover More <i class="fa-solid fa-arrow-right ml-1 text-[8px]"></i>
+                </a>
+            </div>
+        </aside>
+    
+        <div class="lg:col-span-6 space-y-4">
+            
+            <div class="feed-card p-4 bg-white border border-slate-200 rounded-xl shadow-sm">
+                <div class="flex gap-3 mb-3">
+                    <img src="/IMG/Logo.jpeg" class="w-12 h-12 rounded-full object-cover shrink-0">
+                    
+                    <div class="flex-grow">
+                        <textarea id="postInput" 
+                            class="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium text-slate-700 placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-400 outline-none transition-all resize-none overflow-hidden" 
+                            placeholder="Start a loaf..."
+                            rows="1"
+                            oninput="handlePostInput(this)"></textarea>
+                        
+                        <div class="flex justify-between items-center mt-2">
+                            <span id="charCounter" class="text-[9px] font-black text-slate-400 uppercase">0 / 500</span>
+                            
+                            <div id="postActions" class="hidden justify-end">
+                                <button onclick="submitLoaf()" class="bg-cyan-500 text-white px-4 py-1.5 rounded-full font-black text-xs uppercase tracking-widest hover:bg-cyan-600 transition shadow-lg shadow-cyan-500/20">
+                                    Loaf
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            
+                <input type="file" id="photoUpload" accept="image/*" class="hidden">
+                <input type="file" id="videoUpload" accept="video/*" class="hidden">
+            
+                <div class="flex justify-between px-2 pt-2 border-t border-slate-50">
+                    <button onclick="document.getElementById('photoUpload').click()" class="flex items-center gap-2 text-slate-500 text-xs font-black hover:bg-slate-100 px-3 py-2 rounded-lg transition">
+                        <i class="fa-solid fa-image text-blue-400 text-lg"></i> 
+                        <span class="hidden sm:inline">Photo</span>
+                    </button>
+                    
+                    <button onclick="document.getElementById('videoUpload').click()" class="flex items-center gap-2 text-slate-500 text-xs font-black hover:bg-slate-100 px-3 py-2 rounded-lg transition">
+                        <i class="fa-solid fa-video text-green-500 text-lg"></i> 
+                        <span class="hidden sm:inline">Video</span>
+                    </button>
+                    
+                    <a href="post.html" class="flex items-center gap-2 text-slate-500 text-xs font-black hover:bg-slate-100 px-3 py-2 rounded-lg transition">
+                        <i class="fa-solid fa-newspaper text-orange-400 text-lg"></i> 
+                        <span class="hidden sm:inline">Write Article</span>
+                    </a>
+                </div>
+            </div>
+            <div id="globalModal" class="hidden fixed inset-0 z-[9999] items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm">
+                <div class="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-[modalSlideUp_0.3s_ease-out]">
+                    <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                        <h3 id="modalTitle" class="text-sm font-black text-slate-800 uppercase tracking-widest"></h3>
+                        <button onclick="closeGlobalModal()" class="text-slate-400 hover:text-red-500 transition">
+                            <i class="fa-solid fa-xmark text-xl"></i>
+                        </button>
+                    </div>
+                    <div id="modalBody" class="p-6">
+                        </div>
+                </div>
+            </div>
+            <div id="mainFeed">
+                <div class="flex items-center gap-2 px-1 mb-4">
+                    <hr class="flex-grow border-slate-200">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase">Sort by: <strong class="text-slate-800">Most Chill</strong></span>
+                </div>
+            
+                <div id="feedPlaceholder">
+                    <div class="feed-card p-10 bg-white border border-slate-200 rounded-xl shadow-sm text-center">
+                        <div class="relative inline-block mb-6">
+                            <div class="text-6xl grayscale opacity-20">✨</div>
+                            <div class="absolute -top-1 -right-1 w-4 h-4 bg-cyan-500 rounded-full animate-ping"></div>
+                        </div>
+                        <h2 class="text-lg font-black text-slate-800 tracking-tight">Your "For You" feed is being calibrated</h2>
+                        <p class="text-slate-500 text-xs italic mt-2 max-w-xs mx-auto leading-relaxed">
+                            Our algorithm is currently taking a nap. Your personalized loafs will appear automatically when the site is fully operational. 
+                        </p>
+                        <div class="mt-8 flex flex-col items-center gap-3">
+                            <button disabled class="px-8 py-3 bg-slate-100 text-slate-400 font-black rounded-full text-[10px] uppercase tracking-widest cursor-not-allowed border border-slate-200 transition-all">
+                                Ready Soon • Thank You
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <section id="dashboard-hub" class="w-full py-16">
+                <div class="max-w-6xl mx-auto px-6">
+                    
+                    <div class="mb-10 ml-2 border-l-4 border-blue-600 pl-4">
+                        <h2 class="text-[10px] font-black uppercase tracking-[0.3em] text-blue-600 mb-2">Operational Overview</h2>
+                        <div class="flex items-center gap-3">
+                            <div class="h-[1px] w-12 bg-slate-300"></div>
+                            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">LinkedOut Central Terminal</span>
+                        </div>
+                    </div>
+            
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            
+                        <div onclick="window.location.href='/PAGES/jobs.html'" 
+                             class="group group-job">
+                            <div class="absolute -right-6 -top-6 w-24 h-24 bg-blue-100/10 blur-[60px] group-hover:bg-blue-100/30 transition-all duration-700"></div>
+                            
+                            <div>
+                                <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mb-8 group-hover:scale-110 transition-transform">
+                                    <i class="fa-solid fa-briefcase text-sm"></i>
+                                </div>
+                                
+                                <h3 class="text-[9px] font-black uppercase tracking-widest text-blue-600 mb-1.5">Career Stream</h3>
+                                <h2 class="text-2xl font-black uppercase tracking-tight text-slate-900">Explore <br>Jobs</h2>
+                            </div>
+                            
+                            <p class="text-[11px] font-medium text-slate-500 mt-5 leading-relaxed">Browse verified technical openings and high-ticket roles.</p>
+                        </div>
+            
+                        <div onclick="window.location.href='/PAGES/applications.html'" 
+                             class="group group-apps">
+                            
+                            <div class="flex justify-between items-start mb-8">
+                                <div class="w-12 h-12 bg-slate-900 text-white rounded-xl flex items-center justify-center">
+                                    <i class="fa-solid fa-paper-plane text-xs"></i>
+                                </div>
+                                <div class="text-right">
+                                    <span id="appCount" class="text-4xl font-black tracking-tighter text-slate-900">0</span>
+                                    <p class="text-[7px] font-black uppercase text-slate-400">Sent Transmissions</p>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <h3 class="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Outgoing Signals</h3>
+                                <h2 class="text-2xl font-black uppercase tracking-tight text-slate-900">Applications</h2>
+                            </div>
+                        </div>
+            
+                        <div onclick="window.location.href='/PAGES/notifications.html'" 
+                             class="group glass-dark group-alerts">
+                            
+                            <div>
+                                <div class="flex justify-between items-center mb-8">
+                                    <div class="w-12 h-12 bg-slate-800 text-blue-400 rounded-xl flex items-center justify-center">
+                                        <i class="fa-solid fa-bell text-sm"></i>
+                                    </div>
+                                    <div class="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse"></div>
+                                </div>
+                                
+                                <h3 class="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1.5">System activity log</h3>
+                                <h2 class="text-2xl font-black uppercase tracking-tight text-white">Alert <br>Center</h2>
+                            </div>
+                            
+                            <div class="mt-8 pt-6 border-t border-slate-800 flex justify-between items-center">
+                                <span class="text-[7px] font-black uppercase text-slate-600 tracking-widest">LinkedOut Security Monitor</span>
+                                <i class="fa-solid fa-shield-check text-blue-900 text-xs"></i>
+                            </div>
+                        </div>
+            
+                    </div> </div> </section>
+            <div class="space-y-4">
+              
+    
+                <div class="feed-card p-12 bg-white border border-slate-200 rounded-xl shadow-sm text-center relative overflow-hidden">
+                    <div class="absolute inset-0 opacity-[0.03] pointer-events-none">
+                        <i class="fa-solid fa-cloud text-9xl -rotate-12 absolute -left-10 -top-10"></i>
+                        <i class="fa-solid fa-moon text-9xl rotate-12 absolute -right-10 -bottom-10"></i>
+                    </div>
+                
+                    <div class="relative z-10">
+                        <div class="inline-flex items-center gap-2 px-3 py-1 bg-amber-50 border border-amber-100 rounded-full mb-4">
+                            <span class="w-2 h-2 bg-amber-400 rounded-full animate-pulse"></span>
+                            <span class="text-[9px] font-black text-amber-700 uppercase tracking-widest">Feed Status: Hibernating</span>
+                        </div>
+                
+                        <h2 class="text-2xl font-black text-slate-800 tracking-tight">Your feed is not yet awake.</h2>
+                        <p class="text-slate-500 text-xs font-medium mt-3 max-w-xs mx-auto leading-relaxed">
+                            We’re currently dreaming up the perfect algorithm. Stay tuned—great loafs come to those who wait.
+                        </p>
+                
+                        <div class="mt-8 max-w-xs mx-auto">
+                            <div class="flex justify-between mb-2">
+                                <span class="text-[9px] font-bold text-slate-400 uppercase">Waking up...</span>
+                                <span class="text-[9px] font-bold text-cyan-600 uppercase">99%</span>
+                            </div>
+                            <div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                <div class="h-full bg-cyan-500 rounded-full animate-pulse" style="width: 99%"></div>
+                            </div>
+                        </div>
+                
+                        <div class="mt-8 pt-6 border-t border-slate-50">
+                            <p class="text-[10px] font-black text-slate-300 uppercase tracking-widest">LinkedOut Alpha v1.0.4</p>
+                        </div>
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+        
+    
+        <aside class="hidden lg:block lg:col-span-3 space-y-4">
+            <div class="feed-card p-4 bg-white border border-slate-200 rounded-xl shadow-sm">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xs font-black text-slate-800 uppercase tracking-widest">LinkedOut News</h3>
+                    <i class="fa-solid fa-circle-info text-slate-300"></i>
+                </div>
+            
+                <div class="py-6 text-center space-y-3">
+                    <div class="relative inline-block">
+                        <i class="fa-solid fa-radio text-3xl text-slate-100"></i>
+                        <div class="absolute -top-1 -right-1 w-2 h-2 bg-slate-200 rounded-full"></div>
+                    </div>
+                    
+                    <div class="space-y-1">
+                        <p class="text-[11px] font-black text-slate-400 uppercase tracking-tight leading-tight">
+                            Breaking News is Napping
+                        </p>
+                        <p class="text-[9px] text-slate-300 font-bold uppercase italic px-4">
+                            The reporters are currently out of office for a deep sleep. 
+                        </p>
+                    </div>
+                </div>
+            
+                <div class="space-y-3 opacity-40 select-none pointer-events-none">
+                    <div class="h-2 bg-slate-50 rounded-full w-full"></div>
+                    <div class="h-2 bg-slate-50 rounded-full w-2/3"></div>
+                </div>
+            
+                <a href="trending.html" class="block w-full mt-4 pt-3 border-t border-slate-100 text-[10px] font-black text-slate-400 uppercase text-left hover:text-cyan-600 transition-all group">
+                    <div class="flex items-center justify-between">
+                        <span>View Trending Loafs</span>
+                        <i class="fa-solid fa-arrow-trend-up group-hover:translate-x-1 transition-transform"></i>
+                    </div>
+                </a>
+            </div>
+    
+            <div class="feed-card p-4 bg-white border border-slate-200 rounded-xl shadow-sm">
+                <h3 class="text-xs font-black text-slate-800 uppercase tracking-widest mb-4">Add to your feed</h3>
+                
+                <div class="py-8 text-center">
+                    <div class="relative inline-block mb-4">
+                        <i class="fa-solid fa-user-plus text-3xl text-slate-100"></i>
+                        <span class="absolute -top-2 -right-2 text-[10px] text-slate-200 font-black animate-bounce">Z</span>
+                    </div>
+                    
+                    <p class="text-[11px] font-black text-slate-400 uppercase tracking-tight px-2">
+                        Networking is currently offline
+                    </p>
+                    <p class="text-[9px] text-slate-300 font-bold uppercase italic mt-1 px-4 leading-relaxed">
+                        All potential loaf-mates are currently catching up on beauty sleep.
+                    </p>
+                </div>
+            
+                <div class="space-y-4 opacity-30 select-none pointer-events-none mb-6">
+                    <div class="flex gap-3">
+                        <div class="w-8 h-8 bg-slate-100 rounded-full shrink-0"></div>
+                        <div class="flex-grow space-y-2">
+                            <div class="h-2 bg-slate-100 rounded w-1/2"></div>
+                            <div class="h-2 bg-slate-50 rounded w-1/4"></div>
+                        </div>
+                    </div>
+                </div>
+            
+                <a href="recommendations.html" class="block w-full pt-3 border-t border-slate-100 text-[10px] font-black text-slate-400 uppercase text-left hover:text-cyan-600 transition-all group">
+                    <div class="flex items-center justify-between">
+                        <span>View Recommendations</span>
+                        <i class="fa-solid fa-wand-magic-sparkles group-hover:rotate-12 transition-transform"></i>
+                    </div>
+                </a>
+            </div>
+            <div class="sticky top-24 px-4 text-center">
+                <div class="flex flex-wrap justify-center gap-x-3 gap-y-1 text-[9px] font-bold text-slate-400 uppercase">
+                    <a href="/about.html" class="hover:text-cyan-600">About</a>
+                   
+                    <a href="/privacy.html" class="hover:text-cyan-600">Privacy Policy</a>
+                  
+                </div>
+                <div class="mt-4 flex items-center justify-center gap-2">
+                    <span class="text-cyan-600 font-black text-lg italic">Linked</span>
+                    <div class="bg-cyan-600 text-white px-1 rounded font-black text-sm">Out</div>
+                    <span class="text-[9px] font-bold text-slate-400 uppercase">Corporation © 2026</span>
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <div id="globalModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-md hidden flex items-center justify-center z-[150] p-6">
+        <div class="bg-white w-full max-w-sm rounded-[3rem] shadow-2xl p-10 text-center scale-95 transition-transform duration-300" id="modalContainer">
+            <div class="text-6xl mb-4" id="modalEmoji">🛋️</div>
+            <h2 id="modalTitle" class="text-2xl font-black text-slate-900 mb-2">Alert</h2>
+            <p id="modalBody" class="text-slate-500 mb-8 italic text-sm">Message</p>
+            <button onclick="closeModal()" class="w-full bg-[#1a2533] text-white py-4 rounded-2xl font-bold hover:bg-cyan-500 transition-all">Understood</button>
+        </div>
+    </div>
+
+    <script src="/SCRIPTS/dashboard.js"></script>
+    <script src="/SCRIPTS/dashboard-profile.js"></script>
+    <script src="/SCRIPTS/recruitment-engine.js"></script>
+    <script src="/SCRIPTS/gloabl.js"></script>
+</body>
+</html>

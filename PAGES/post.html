@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Post | LinkedOut</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/CSS/post.css">
+    <link rel="stylesheet" href="/SCRIPTS/alerts.js">
+    <link rel="icon" type="image/webp" href="/IMG/Logo.jpeg" />
+</head>
+<body class="bg-slate-50 font-sans text-slate-900">
+
+    <div id="globalModal" class="hidden fixed inset-0 z-[9999] items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm">
+        <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden modal-anim">
+            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                <h3 id="modalTitle" class="text-sm font-black text-slate-800 uppercase tracking-widest"></h3>
+                <button onclick="closeGlobalModal()" class="text-slate-400 hover:text-red-500 transition">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+            <div id="modalBody" class="p-6 text-center text-sm font-medium text-slate-600"></div>
+        </div>
+    </div>
+
+    <nav class="bg-white border-b border-slate-200 py-3 sticky top-0 z-50">
+        <div class="max-w-2xl mx-auto px-4 flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-slate-800 rounded-lg flex items-center justify-center">
+                    <i class="fa-solid fa-pen-nib text-white text-xs"></i>
+                </div>
+                <span class="font-black text-lg tracking-tighter text-slate-800 uppercase">New Loaf</span>
+            </div>
+            <a href="/PAGES/dashboard.html" class="text-[10px] font-black uppercase text-slate-400 hover:text-red-500 transition">Discard</a>
+        </div>
+    </nav>
+
+    <main class="max-w-2xl mx-auto py-10 px-6">
+        <div class="bg-white border border-slate-200 rounded-[40px] shadow-sm overflow-hidden main-card">
+            
+            <div class="p-6 flex items-center gap-4">
+                <div class="relative">
+                    <img src="/IMG/Logo.jpeg" class="w-12 h-12 rounded-full object-cover border-2 border-slate-100">
+                    <div id="statusBadge" class="hidden absolute -right-1 -top-1 bg-cyan-500 text-white w-4 h-4 rounded-full border-2 border-white flex items-center justify-center">
+                        <i class="fa-solid fa-z text-[6px]"></i>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-sm font-black text-slate-800 uppercase">Loafer #1</h3>
+                    <div class="flex items-center gap-1 text-[9px] font-black text-slate-400 uppercase tracking-tighter">
+                        <i class="fa-solid fa-earth-americas text-cyan-500"></i> Public
+                    </div>
+                </div>
+            </div>
+
+            <div class="px-6 pb-2">
+                <textarea id="postInput" placeholder="What are you not doing today?" 
+                    class="w-full min-h-[180px] text-xl font-medium text-slate-700 placeholder:text-slate-300 border-none focus:ring-0 resize-none"></textarea>
+            </div>
+
+            <div id="imagePreviewContainer" class="hidden px-6 pb-6">
+                <div class="relative rounded-3xl overflow-hidden border border-slate-100 group">
+                    <img id="imagePreview" src="" class="w-full h-auto max-h-[400px] object-cover">
+                    <button onclick="clearMedia()" class="absolute top-4 right-4 bg-white/90 text-red-500 w-10 h-10 rounded-full flex items-center justify-center shadow-lg hover:bg-red-500 hover:text-white transition-all">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="p-4 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between">
+                <div class="flex gap-1">
+                    <button onclick="document.getElementById('fileInput').click()" class="w-10 h-10 rounded-full flex items-center justify-center text-slate-400 hover:bg-white hover:text-cyan-500 hover:shadow-sm transition-all">
+                        <i class="fa-solid fa-image text-lg"></i>
+                    </button>
+
+                    
+                    <button onclick="triggerAISubscribe()" class="w-10 h-10 rounded-full flex items-center justify-center text-slate-400 hover:bg-white hover:text-purple-500 hover:shadow-sm transition-all group">
+                        <i class="fa-solid fa-wand-magic-sparkles text-lg group-hover:animate-pulse"></i>
+                    </button>
+                </div>
+
+                <div class="flex items-center gap-6">
+                    <span id="charCounter" class="text-[10px] font-black text-slate-300 uppercase tracking-widest">0 / 280</span>
+                    <button onclick="handlePublish()" class="bg-slate-800 text-white px-10 py-3.5 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-cyan-600 hover:shadow-lg hover:shadow-cyan-200 transition-all active:scale-95">
+                        Post
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <input type="file" id="fileInput" class="hidden" accept="image/*" onchange="previewImage(event)">
+
+    <script src="/SCRIPTS/post.js"></script>
+</body>
+</html>

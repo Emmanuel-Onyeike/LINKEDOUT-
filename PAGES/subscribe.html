@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subscribe | LinkedOut Terminal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/CSS/sub.css">
+    <link rel="icon" type="image/webp" href="/IMG/Logo.jpeg" />
+</head>
+<body class="bg-slate-50 font-sans antialiased text-slate-900">
+
+    <nav class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-100">
+        <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <a href="/PAGES/dashboard.html" class="text-slate-400 hover:text-slate-900 transition">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </a>
+                <h1 class="text-sm font-black uppercase tracking-widest text-slate-800">LinkedOut Terminal</h1>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-4xl mx-auto px-6 py-12 text-center">
+        <div class="mb-12 animate-slide-up">
+            <h2 class="text-3xl font-black uppercase tracking-tighter text-slate-900 mb-4 italic">Expand Your Signal</h2>
+            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em]">Choose a frequency to broadcast to The Colony</p>
+        </div>
+
+        <div class="flex items-center justify-center gap-4 mb-12">
+            <span class="text-[10px] font-black uppercase text-slate-400">Monthly Pulse</span>
+            <button id="billingToggle" class="w-12 h-6 bg-slate-200 rounded-full p-1 transition-colors duration-300">
+                <div class="w-4 h-4 bg-white rounded-full shadow-sm transform transition-transform duration-300"></div>
+            </button>
+            <span class="text-[10px] font-black uppercase text-slate-900">Annual Sync <span class="text-cyan-500 text-[8px] italic">(Save 20%)</span></span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div class="bg-white border border-slate-200 rounded-[40px] p-10 shadow-sm hover:shadow-xl transition group">
+                <div class="text-left">
+                    <span class="px-3 py-1 bg-slate-100 rounded-full text-[9px] font-black uppercase text-slate-400 tracking-widest">Node: Standard</span>
+                    <h3 class="text-2xl font-black uppercase italic mt-4 mb-2">Community Sync</h3>
+                    <div class="flex items-baseline gap-1 mb-6">
+                        <span class="text-4xl font-black text-slate-900">₦</span>
+                        <span id="studentPrice" class="text-4xl font-black text-slate-900">2,500</span>
+                        <span class="text-xs font-bold text-slate-400 uppercase">/mo</span>
+                    </div>
+                </div>
+                <ul class="space-y-4 mb-10 text-left">
+                    <li class="flex items-center gap-3 text-xs font-medium text-slate-600">
+                        <i class="fa-solid fa-satellite text-cyan-500"></i> Full Discovery Grid Access
+                    </li>
+                    <li class="flex items-center gap-3 text-xs font-medium text-slate-600">
+                        <i class="fa-solid fa-user-plus text-cyan-500"></i> Direct Connection Requests
+                    </li>
+                    <li class="flex items-center gap-3 text-xs font-medium text-slate-600">
+                        <i class="fa-solid fa-chart-line text-cyan-500"></i> Priority Profile Indexing
+                    </li>
+                </ul>
+                <button onclick="payWithPaystack('student')" class="w-full py-4 bg-slate-100 group-hover:bg-slate-900 group-hover:text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition">Initialize Plan</button>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-[40px] p-10 shadow-2xl relative overflow-hidden group">
+                <div class="absolute top-0 right-0 p-6 opacity-10">
+                    <i class="fa-solid fa-bolt text-6xl text-cyan-400"></i>
+                </div>
+                <div class="text-left">
+                    <span class="px-3 py-1 bg-cyan-500/10 rounded-full text-[9px] font-black uppercase text-cyan-400 tracking-widest">Node: Elite League</span>
+                    <h3 class="text-2xl font-black uppercase italic mt-4 mb-2 text-white">Overdrive Protocol</h3>
+                    <div class="flex items-baseline gap-1 mb-6 text-white">
+                        <span class="text-4xl font-black text-cyan-400">₦</span>
+                        <span id="proPrice" class="text-4xl font-black text-cyan-400">7,500</span>
+                        <span class="text-xs font-bold opacity-40 uppercase">/mo</span>
+                    </div>
+                </div>
+                <ul class="space-y-4 mb-10 text-left text-white/70">
+                    <li class="flex items-center gap-3 text-xs font-medium">
+                        <i class="fa-solid fa-tower-broadcast text-cyan-400"></i> Unlimited Signal Broadcasting
+                    </li>
+                    <li class="flex items-center gap-3 text-xs font-medium">
+                        <i class="fa-solid fa-brain text-cyan-400"></i> Advanced Search Intelligence
+                    </li>
+                    <li class="flex items-center gap-3 text-xs font-medium">
+                        <i class="fa-solid fa-shield-halved text-cyan-400"></i> Verified Elite Status Badge
+                    </li>
+                </ul>
+                <button onclick="payWithPaystack('pro')" class="w-full py-4 bg-cyan-500 text-slate-900 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white transition">Initialize Plan</button>
+            </div>
+        </div>
+    </main>
+
+    <div id="globalModal" class="fixed inset-0 z-[100] hidden items-center justify-center bg-slate-900/60 backdrop-blur-sm p-6">
+        <div class="bg-white w-full max-w-sm rounded-[40px] p-8 shadow-2xl animate-modal-in text-center">
+            <h2 id="modalTitle" class="text-xs font-black uppercase tracking-widest mb-2 text-slate-800"></h2>
+            <p id="modalBody" class="text-[11px] font-medium text-slate-500 leading-relaxed mb-6"></p>
+            <button onclick="closeGlobalModal()" class="w-full py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-cyan-600 transition">Acknowledged</button>
+        </div>
+    </div>
+
+    <script src="https://js.paystack.co/v1/inline.js"></script>
+    <script src="/SCRIPTS/subscribe.js"></script>
+</body>
+</html>
