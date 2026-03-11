@@ -118,3 +118,65 @@ updateTierUI(savedRole);
 // 3. INTEGRATE INTO SAVE
 // Inside your saveIdentity() function, add this after saving to localStorage:
 updateTierUI(newRole);
+/**
+ * TAB SWITCHING LOGIC
+ */
+function switchTab(tab) {
+    const aboutSec = document.getElementById('aboutSection');
+    const postsSec = document.getElementById('postsSection');
+    const aboutBtn = document.getElementById('tab-about');
+    const postsBtn = document.getElementById('tab-posts');
+
+    if (tab === 'posts') {
+        aboutSec.classList.add('hidden');
+        postsSec.classList.remove('hidden');
+        
+        // UI State
+        postsBtn.classList.replace('text-slate-400', 'text-slate-900');
+        postsBtn.classList.replace('border-transparent', 'border-slate-900');
+        aboutBtn.classList.replace('text-slate-900', 'text-slate-400');
+        aboutBtn.classList.replace('border-slate-900', 'border-transparent');
+        
+        loadUserPosts(); // Trigger post fetch
+    } else {
+        postsSec.classList.add('hidden');
+        aboutSec.classList.remove('hidden');
+        
+        // UI State
+        aboutBtn.classList.replace('text-slate-400', 'text-slate-900');
+        aboutBtn.classList.replace('border-transparent', 'border-slate-900');
+        postsBtn.classList.replace('text-slate-900', 'text-slate-400');
+        postsBtn.classList.replace('border-slate-900', 'border-transparent');
+    }
+}
+
+/**
+ * LOAD USER POSTS
+ * Fetches only posts created by the current user
+ */
+function loadUserPosts() {
+    const grid = document.getElementById('userPostsGrid');
+    // Assuming your posts are stored in 'linkedOut_posts'
+    const posts = JSON.parse(localStorage.getItem('linkedOut_posts')) || [];
+    
+    // In a real app, you'd filter by userId. For now, we show all "My" posts.
+    if (posts.length === 0) {
+        grid.innerHTML = `
+            <div class="py-20 text-center border-2 border-dashed border-slate-100 rounded-[40px]">
+                <p class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-300">No Transmissions Recorded</p>
+            </div>
+        `;
+        return;
+    }
+
+    grid.innerHTML = posts.map(post => `
+        <div class="bg-white border border-slate-100 p-8 rounded-[32px] hover:border-slate-900 transition-all">
+            <div class="flex justify-between items-start mb-4">
+                <span class="text-[8px] font-black uppercase tracking-widest text-blue-600">${post.category || 'General'}</span>
+                <span class="text-[8px] font-bold text-slate-300 uppercase">${post.timestamp || 'Recent'}</span>
+            </div>
+            <h3 class="text-sm font-black text-slate-900 mb-2 uppercase">${post.title || 'Untitled Transmission'}</h3>
+            <p class="text-[11px] text-slate-500 leading-relaxed">${post.content}</p>
+        </div>
+    `).join('');
+}

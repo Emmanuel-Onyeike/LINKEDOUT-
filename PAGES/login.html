@@ -5,81 +5,58 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Welcome Back | LinkedOut</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="/CSS/style.css">
     <link rel="icon" type="image/webp" href="/IMG/Logo.jpeg" />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
 </head>
 <body class="bg-soft-blue min-h-screen flex flex-col antialiased">
 
     <nav class="p-6 max-w-7xl mx-auto w-full">
         <a href="/index.html" class="flex items-center group w-fit">
             <img src="/IMG/Logo.jpeg" alt="Logo" class="h-8 w-8 rounded-lg object-cover">
-            <span class="ml-2 font-black text-slate-900 tracking-tighter uppercase">Home</span>
+            <span class="ml-2 font-black text-slate-900 uppercase">Home</span>
         </a>
     </nav>
 
     <main class="flex-grow flex items-center justify-center px-4">
-        <div class="max-w-md w-full bg-white p-10 rounded-[3.5rem] shadow-2xl shadow-blue-100/50 border border-slate-50 text-center transition-all hover:translate-y-[-4px]">
+        <div class="max-w-md w-full bg-white p-10 rounded-[3.5rem] shadow-2xl border border-slate-50 text-center">
             
             <div class="mb-10">
-                <div class="inline-flex items-center justify-center w-16 h-16 bg-blue-50 rounded-3xl mb-6 rotate-3">
+                <div class="inline-flex items-center justify-center w-16 h-16 bg-blue-50 rounded-3xl mb-6">
                     <span class="text-3xl">🔑</span>
                 </div>
-                <h1 class="text-4xl font-black text-slate-900 tracking-tight leading-none">Welcome Back</h1>
-                <p class="text-slate-400 mt-3 font-medium italic">Ready to do nothing today?</p>
+                <h1 class="text-4xl font-black text-slate-900 leading-none">Welcome Back</h1>
             </div>
     
-            <form id="loginForm" class="space-y-4" onsubmit="handleLogin(event)">
+            <form id="loginForm" class="space-y-4">
                 <div class="text-left">
-                    <label class="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2 ml-1">Username</label>
-                    <input type="text" id="loginUser" required placeholder="NapQueen88" 
-                        class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 focus:border-blue-400 focus:bg-white focus:outline-none transition-all">
+                    <label class="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2 ml-1">Email Address</label>
+                    <input type="email" id="loginEmail" required placeholder="lazy@loaf.com" 
+                        class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 focus:border-blue-400 focus:outline-none transition-all">
                 </div>
     
                 <div class="text-left">
                     <label class="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2 ml-1">Password</label>
-                    <div class="relative flex items-center">
-                        <input type="password" id="loginPass" required placeholder="••••••••" 
-                            class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 pr-12 focus:border-blue-400 focus:bg-white focus:outline-none transition-all">
-                        
-                        <button type="button" onclick="togglePassword('loginPass', this)" class="absolute right-4 text-slate-300 hover:text-blue-500 transition">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                            </svg>
-                        </button>
-                    </div>
+                    <input type="password" id="loginPass" required placeholder="••••••••" 
+                        class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 focus:border-blue-400 focus:outline-none transition-all">
                 </div>
                 
                 <div class="pt-4">
-                    <a href="/PAGES/dashboard.html" 
-                       class="flex items-center justify-center w-full bg-blue-600 text-white py-5 rounded-2xl font-black text-lg hover:bg-blue-700 hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-blue-100">
+                    <button type="submit" class="w-full bg-blue-600 text-white py-5 rounded-2xl font-black text-lg hover:bg-blue-700 transition-all shadow-xl shadow-blue-100">
                         Enter the Loaf 🛋️
-                    </a>
+                    </button>
                 </div>
             </form>
     
             <div class="mt-8 flex flex-col gap-4">
-                <button onclick="triggerAlert('Lazy Forgot', 'If you forgot your password, just make a new account. It is less work.', '🤷‍♂️')" 
-                    class="text-slate-400 text-xs font-bold hover:text-slate-600 transition">
-                    Forgot Password?
-                </button>
-                
-                <div class="flex items-center gap-4 py-2">
-                    <div class="h-[1px] bg-slate-100 flex-grow"></div>
-                    <span class="text-[10px] font-black text-slate-300 uppercase tracking-widest">or</span>
-                    <div class="h-[1px] bg-slate-100 flex-grow"></div>
-                </div>
-    
                 <p class="text-slate-400 text-sm font-medium">
-                    New here? <a href="register.html" class="text-blue-600 font-bold hover:underline">Claim your spot</a>
+                    New here? <a href="/PAGES/register.html" class="text-blue-600 font-bold hover:underline">Claim your spot</a>
                 </p>
             </div>
         </div>
     </main>
 
-  
-
-    <script src="/SCRIPTS/logic.js"></script>
+    <script src="/SCRIPTS/global.js"></script>
+    <script src="/SCRIPTS/auth.js"></script>
 </body>
 </html>

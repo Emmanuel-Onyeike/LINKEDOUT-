@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Join the Bench | LinkedOut</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="/CSS/style.css">
     <link rel="icon" type="image/webp" href="/IMG/Logo.jpeg" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
@@ -19,88 +20,59 @@
     </nav>
 
     <main class="flex-grow flex items-center justify-center px-4 pb-12">
-        <div class="grid md:grid-cols-2 gap-12 items-center max-w-5xl w-full bg-white p-8 md:p-12 rounded-[3rem] shadow-xl border border-slate-50 transition-all hover:shadow-2xl">
+        <div class="grid md:grid-cols-2 gap-12 items-center max-w-5xl w-full bg-white p-8 md:p-12 rounded-[3rem] shadow-xl border border-slate-50">
             
             <div class="hidden md:block bg-blue-50 rounded-[2.5rem] p-10 relative overflow-hidden group">
-                <div class="absolute top-0 right-0 w-32 h-32 bg-blue-100 rounded-full -mr-16 -mt-16 transition-transform group-hover:scale-150 duration-700"></div>
-                
-                <img src="/IMG/register.jpg" alt="Loafing Illustration" class="w-full h-auto object-contain relative z-10 drop-shadow-2xl transition-transform group-hover:-rotate-2">
-                
+                <img src="/IMG/register.jpg" alt="Illustration" class="w-full h-auto object-contain relative z-10 drop-shadow-2xl">
                 <div class="mt-8 text-center relative z-10">
                     <h3 class="font-black text-slate-800 text-2xl tracking-tight">The Bench is calling.</h3>
-                    <p class="text-slate-500 text-base mt-2 italic">Grab your favorite snack and join the others doing absolutely nothing.</p>
+                    <p class="text-slate-500 text-base mt-2 italic">Grab your favorite snack and join the others.</p>
                 </div>
             </div>
     
             <div class="space-y-8">
                 <div>
-                    <div class="inline-block bg-blue-100 text-blue-600 text-[10px] font-black px-3 py-1 rounded-full mb-4 uppercase tracking-widest">
-                        Entry Form
-                    </div>
+                    <div class="inline-block bg-blue-100 text-blue-600 text-[10px] font-black px-3 py-1 rounded-full mb-4 uppercase tracking-widest">Entry Form</div>
                     <h1 class="text-4xl font-black text-slate-900 tracking-tight leading-none">Create your Un-Profile</h1>
-                    <p class="text-slate-500 mt-3 font-medium">No resume. No hustle. Just vibes.</p>
                 </div>
     
-                <form id="registerForm" class="space-y-4" onsubmit="handleRegister(event)">
+                <form id="registerForm" class="space-y-4">
                     <div>
                         <label class="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2 ml-1">Full Name</label>
-                        <input type="text" id="regFullName" required placeholder="e.g. John 'The Loafer' Doe" class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 focus:border-blue-400 focus:bg-white focus:outline-none transition-all">
+                        <input type="text" id="regFullName" required placeholder="John Doe" class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 focus:border-blue-400 focus:outline-none transition-all">
                     </div>
                 
                     <div>
                         <label class="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2 ml-1">Email Address</label>
-                        <input type="email" id="regEmail" required placeholder="lazy@loaf.com" class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 focus:border-blue-400 focus:bg-white focus:outline-none transition-all">
-                    </div>
-                
-                    <div>
-                        <label class="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2 ml-1">Phone Number</label>
-                        <input type="tel" id="regPhone" required placeholder="For zero-effort calls" class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 focus:border-blue-400 focus:bg-white focus:outline-none transition-all">
+                        <input type="email" id="regEmail" required placeholder="lazy@loaf.com" class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 focus:border-blue-400 focus:outline-none transition-all">
                     </div>
                 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="relative">
+                        <div>
                             <label class="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2 ml-1">Password</label>
-                            <div class="relative flex items-center">
-                                <input type="password" id="regPass" required placeholder="••••••••" class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 pr-12 focus:border-blue-400 focus:bg-white focus:outline-none transition-all">
-                                <button type="button" onclick="togglePassword('regPass', this)" class="absolute right-4 text-slate-300 hover:text-blue-500 transition">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                    </svg>
-                                </button>
-                            </div>
+                            <input type="password" id="regPass" required placeholder="••••••••" class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 focus:border-blue-400 focus:outline-none transition-all">
                         </div>
-                        <div class="relative">
+                        <div>
                             <label class="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2 ml-1">Confirm</label>
-                            <div class="relative flex items-center">
-                                <input type="password" id="regConfirmPass" required placeholder="••••••••" class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 pr-12 focus:border-blue-400 focus:bg-white focus:outline-none transition-all">
-                                <button type="button" onclick="togglePassword('regConfirmPass', this)" class="absolute right-4 text-slate-300 hover:text-blue-500 transition">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                    </svg>
-                                </button>
-                            </div>
+                            <input type="password" id="regConfirmPass" required placeholder="••••••••" class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 focus:border-blue-400 focus:outline-none transition-all">
                         </div>
                     </div>
                     
                     <div class="pt-6">
-                        <a href="/PAGES/dashboard.html" 
-                           class="group flex items-center justify-center w-full bg-slate-900 text-white py-5 rounded-2xl font-black text-lg hover:bg-blue-600 transition-all hover:scale-[1.02] active:scale-95 shadow-xl shadow-slate-200">
+                        <button type="submit" class="w-full bg-slate-900 text-white py-5 rounded-2xl font-black text-lg hover:bg-blue-600 transition-all shadow-xl">
                             Join the Bench 🛋️
-                        </a>
+                        </button>
                     </div>
                 </form>
     
                 <p class="text-center text-slate-400 text-sm font-medium">
-                    Already a loafer? <a href="login.html" class="text-blue-600 font-bold hover:underline hover:text-blue-700">Login here</a>
+                    Already a loafer? <a href="/PAGES/login.html" class="text-blue-600 font-bold hover:underline">Login here</a>
                 </p>
             </div>
         </div>
     </main>
-   
 
-    <script src="/SCRIPTS/logic.js"></script>
-    <script src="/SCRIPTS/password eye.js"></script>
+    <script src="/SCRIPTS/global.js"></script>
+    <script src="/SCRIPTS/auth.js"></script>
 </body>
 </html>
