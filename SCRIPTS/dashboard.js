@@ -228,45 +228,57 @@ function syncSidebarCommunities() {
     `).join('');
 }
 // New function – only for the Suites button (no conflict with old name)
-function toggleSuitesMenu() {
-  console.log("Suites menu toggled – button clicked");
+function toggleSuitesModal() {
+  const overlay = document.getElementById('loafModalOverlay');
+  if (!overlay) return;
 
-  // Try to find any existing menu/overlay (adjust IDs/classes to match your HTML)
-  const possibleMenus = [
-    document.getElementById('suitesDropdown'),
-    document.getElementById('loafModalOverlay'),
-    document.querySelector('[data-menu="suites"]'),
-    document.querySelector('.suites-menu') // or any class you use
-  ];
+  const content = document.getElementById('loafDropdown');
+  if (!content) return;
 
-  let menuFound = false;
+  const isOpen = !overlay.classList.contains('hidden');
 
-  for (const menu of possibleMenus) {
-    if (menu) {
-      menu.classList.toggle('hidden');
-      if (!menu.classList.contains('hidden')) {
-        document.body.classList.add('suites-open'); // optional for styling
-      } else {
-        document.body.classList.remove('suites-open');
-      }
-      menuFound = true;
-      break;
-    }
+  if (!isOpen) {
+    // Open modal
+    overlay.classList.remove('hidden');
+    overlay.classList.add('flex');
+
+    // Force reflow so transitions work
+    overlay.offsetHeight;
+
+    overlay.style.opacity = '1';
+    content.classList.remove('scale-95', 'opacity-0');
+    content.classList.add('scale-100', 'opacity-100');
+
+    // Prevent body scroll
+    document.body.style.overflow = 'hidden';
+  } else {
+    // Close modal
+    overlay.style.opacity = '0';
+    content.classList.remove('scale-100', 'opacity-100');
+    content.classList.add('scale-95', 'opacity-0');
+
+    // Wait for animation to finish before hiding
+    setTimeout(() => {
+      overlay.classList.add('hidden');
+      overlay.classList.remove('flex');
+      document.body.style.overflow = '';
+    }, 320); // slightly longer than your transition duration (300ms)
   }
-
-  // If no menu found → show fallback modal instead of breaking page
-  if (!menuFound) {
-    if (typeof window.showModal === 'function') {
-      window.showModal(
-        "Suites & Tools",
-        "This section is under construction 🛋️\nPremium suites, analytics, and more coming soon.\n\n(Click anywhere to close)",
-        true
-      );
-    } else {
-      alert("Suites Menu\nComing soon – stay tuned! 🛋️");
-    }
-  }
-
-  // Safety: remove any accidental full-screen blockers
-  document.body.style.overflow = ''; // reset if was hidden
 }
+
+// Bonus: close when clicking outside the modal content
+document.addEventListener('click', function closeModalOnOutsideClick(e) {
+  const overlay = document.getElementById('loafModalOverlay');
+  if (!overlay) return;
+  if (overlay.classList.contains('hidden')) return;
+
+  const content = document.getElementById('loafDropdown');
+  if (!content) return;
+
+  // Clicked on overlay but not inside content → close
+  if (e.target === overlay || !content.contains(e.target)) {
+    toggleSuitesModal();
+    // Remove listener after close to avoid memory leak (optional)
+    // document.removeEventListener('click', closeModalOnOutsideClick);
+  }
+});
