@@ -10,44 +10,42 @@
     <link rel="icon" type="image/webp" href="/IMG/Logo.jpeg" />
 </head>
 <body class="bg-soft-blue min-h-screen flex flex-col antialiased">
-
     <nav class="p-6 max-w-7xl mx-auto w-full">
         <a href="/index.html" class="flex items-center group w-fit">
             <img src="/IMG/Logo.jpeg" alt="Logo" class="h-8 w-8 rounded-lg object-cover">
             <span class="ml-2 font-black text-slate-900 uppercase">Home</span>
         </a>
     </nav>
-
     <main class="flex-grow flex items-center justify-center px-4">
         <div class="max-w-md w-full bg-white p-10 rounded-[3.5rem] shadow-2xl border border-slate-50 text-center">
-            
+           
             <div class="mb-10">
                 <div class="inline-flex items-center justify-center w-16 h-16 bg-blue-50 rounded-3xl mb-6">
                     <span class="text-3xl">🔑</span>
                 </div>
                 <h1 class="text-4xl font-black text-slate-900 leading-none">Welcome Back</h1>
             </div>
-    
+   
             <form id="loginForm" class="space-y-4">
                 <div class="text-left">
                     <label class="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2 ml-1">Email Address</label>
-                    <input type="email" id="loginEmail" required placeholder="lazy@loaf.com" 
+                    <input type="email" id="loginEmail" required placeholder="lazy@loaf.com"
                         class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 focus:border-blue-400 focus:outline-none transition-all">
                 </div>
-    
+   
                 <div class="text-left">
                     <label class="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2 ml-1">Password</label>
-                    <input type="password" id="loginPass" required placeholder="••••••••" 
+                    <input type="password" id="loginPass" required placeholder="••••••••"
                         class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 focus:border-blue-400 focus:outline-none transition-all">
                 </div>
-                
+               
                 <div class="pt-4">
                     <button type="submit" class="w-full bg-blue-600 text-white py-5 rounded-2xl font-black text-lg hover:bg-blue-700 transition-all shadow-xl shadow-blue-100">
                         Enter the Loaf 🛋️
                     </button>
                 </div>
             </form>
-    
+   
             <div class="mt-8 flex flex-col gap-4">
                 <p class="text-slate-400 text-sm font-medium">
                     New here? <a href="/PAGES/register.html" class="text-blue-600 font-bold hover:underline">Claim your spot</a>
@@ -56,7 +54,9 @@
         </div>
     </main>
 
-<script src="../SCRIPTS/global.js"></script>
-<script src="../SCRIPTS/auth.js"></script>
+    <!-- Scripts - Supabase first, then your logic files -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/SCRIPTS/global.js"></script>
+    <script src="/SCRIPTS/auth.js"></script>
 </body>
 </html>
