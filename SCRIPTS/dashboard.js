@@ -24,31 +24,23 @@ async function renderFeed() {
 
     if (!feedContainer) return;
 
-    // 1. Get current user ID
     const { data: { user } } = await supabase.auth.getUser();
     const currentUserId = user ? user.id : null;
 
-    // 2. Fetch posts with EXPLICIT relationship hint to fix PGRST200
-    // Adjust 'posts_user_id_fkey' if your FK constraint name is different
-    // (check Supabase Table Editor > posts > Relationships tab)
+    // NEW: Use column-based join (this bypasses cache issues)
     const { data: posts, error } = await supabase
         .from('posts')
         .select(`
             *,
-            profiles!posts_user_id_fkey (
-                full_name,
-                avatar_url
-            )
+            profiles:user_id (full_name, avatar_url)   // ← THIS IS THE FIX
         `)
         .order('created_at', { ascending: false });
 
     if (error) {
         console.error("Feed Fetch Error:", error);
-        if (error.code === 'PGRST200') {
-            console.warn("PGRST200: Try running 'NOTIFY pgrst, \"reload schema\";' in SQL Editor again, or confirm FK name.");
-        }
         if (placeholder) {
-            placeholder.innerHTML = '<p class="text-slate-500">Failed to load feed. Try refreshing.</p>';
+            placeholder.innerHTML = `<p class="text-red-500 text-center py-8">Feed temporarily unavailable.<br>Try refreshing page.</p>`;
+            placeholder.style.display = 'block';
         }
         return;
     }
@@ -64,7 +56,6 @@ async function renderFeed() {
             feedContainer.appendChild(postWrapper);
         }
 
-        // 3. Render posts
         postWrapper.innerHTML = posts.map(post => {
             const isOwner = currentUserId === post.user_id;
             return `
@@ -78,7 +69,6 @@ async function renderFeed() {
                                     <p class="text-[9px] font-bold text-slate-400 uppercase">${new Date(post.created_at).toLocaleDateString()}</p>
                                 </div>
                             </div>
-                           
                             ${isOwner ? `
                                 <button onclick="deleteLoaf(${post.id})" class="text-slate-300 hover:text-red-500 transition">
                                     <i class="fa-solid fa-trash-can"></i>
@@ -97,7 +87,7 @@ async function renderFeed() {
         }).join('');
     } else {
         if (placeholder) {
-            placeholder.innerHTML = '<p class="text-slate-500 text-center py-8">No loafs yet. Start broadcasting!</p>';
+            placeholder.innerHTML = '<p class="text-slate-500 text-center py-8">No loafs yet. Be the first!</p>';
             placeholder.style.display = 'block';
         }
     }
