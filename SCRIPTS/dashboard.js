@@ -1,6 +1,6 @@
 /**
- * LINKEDOUT DASHBOARD v5.1 - FIXED Feed Embed + Modal Safety
- * Handlers: Feed Engine, Community Sync, Dark Mode, & Live Auth
+ * LINKEDOUT DASHBOARD v5.2 - FIXED Modal + Feed Stability
+ * Handlers: Feed Engine, Community Sync, Dark Mode, Live Auth & Suites Modal
  */
 document.addEventListener('DOMContentLoaded', async () => {
     // 1. Core Data Fetching
@@ -15,24 +15,32 @@ document.addEventListener('DOMContentLoaded', async () => {
     syncSidebarCommunities();
     checkSavedTheme();
     updateDashboardStats();
+
+    // 3. Optional: Listen for Escape key to close modal
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            const overlay = document.getElementById('linkedOutModalOverlay');
+            if (overlay && !overlay.classList.contains('hidden')) {
+                toggleLinkedOutModal();
+            }
+        }
+    });
 });
 
-// --- 1. CORE FEED ENGINE (Supabase Driven) ---
+// --- 1. CORE FEED ENGINE ---
 async function renderFeed() {
     const feedContainer = document.getElementById('mainFeed');
     const placeholder = document.getElementById('feedPlaceholder');
-
     if (!feedContainer) return;
 
     const { data: { user } } = await supabase.auth.getUser();
     const currentUserId = user ? user.id : null;
 
-    // NEW: Use column-based join (this bypasses cache issues)
     const { data: posts, error } = await supabase
         .from('posts')
         .select(`
             *,
-            profiles:user_id (full_name, avatar_url)   // ← THIS IS THE FIX
+            profiles:user_id (full_name, avatar_url)
         `)
         .order('created_at', { ascending: false });
 
@@ -93,43 +101,33 @@ async function renderFeed() {
     }
 }
 
-// --- 2. SUBMITTING A NEW LOAF (POST) ---
+// --- 2. SUBMITTING A NEW LOAF ---
 async function submitLoaf() {
     const input = document.getElementById('postInput');
-    const content = input.value.trim();
-
+    const content = input?.value?.trim();
     if (!content) return;
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-        if (typeof window.showModal === 'function') {
-            window.showModal("Auth Error", "Please log in to broadcast.", false);
-        }
+        window.showModal?.("Auth Error", "Please log in to broadcast.", false);
         return;
     }
 
-    const { error } = await supabase.from('posts').insert([
-        {
-            user_id: user.id,
-            content: content,
-            title: "Quick Transmission", // Default title
-            category: "General"
-        }
-    ]);
+    const { error } = await supabase.from('posts').insert([{
+        user_id: user.id,
+        content: content,
+        title: "Quick Transmission",
+        category: "General"
+    }]);
 
     if (error) {
-        if (typeof window.showModal === 'function') {
-            window.showModal("Transmission Failed", error.message, false);
-        }
+        window.showModal?.("Transmission Failed", error.message, false);
     } else {
         input.value = '';
         input.style.height = "auto";
         document.getElementById('postActions')?.classList.add('hidden');
-
-        await renderFeed(); // Refresh feed
-        if (typeof window.showModal === 'function') {
-            window.showModal("Loaf Published", "Your thoughts have entered the professional void.", true);
-        }
+        await renderFeed();
+        window.showModal?.("Loaf Published", "Your thoughts have entered the professional void.", true);
     }
 }
 
@@ -137,15 +135,13 @@ async function deleteLoaf(id) {
     const { error } = await supabase.from('posts').delete().eq('id', id);
     if (!error) {
         renderFeed();
-        if (typeof window.showModal === 'function') {
-            window.showModal("Scrubbed", "Transmission successfully removed from the grid.", true);
-        }
+        window.showModal?.("Scrubbed", "Transmission successfully removed from the grid.", true);
     } else {
         console.error("Delete error:", error);
     }
 }
 
-// --- 3. UI, THEME & STATS --- (unchanged except modal safety)
+// --- 3. UI, THEME & STATS ---
 function handlePostInput(el) {
     const postActions = document.getElementById('postActions');
     const counter = document.getElementById('charCounter');
@@ -155,6 +151,7 @@ function handlePostInput(el) {
     if (counter) counter.innerText = `${el.value.length} / ${maxLength}`;
     el.style.height = "auto";
     el.style.height = (el.scrollHeight) + "px";
+
     if (el.value.trim().length > 0) {
         postActions?.classList.remove('hidden');
         postActions?.classList.add('flex');
@@ -167,11 +164,12 @@ function handlePostInput(el) {
 async function updateDashboardStats() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    // Fetch post count for this user
+
     const { count } = await supabase
         .from('posts')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id);
+
     const appCountElement = document.getElementById('appCount');
     if (appCountElement) appCountElement.innerText = count || 0;
 }
@@ -180,9 +178,7 @@ function toggleDarkMode() {
     const isDark = document.documentElement.classList.toggle('dark');
     localStorage.setItem('theme', isDark ? 'dark' : 'light');
     updateThemeIcon(isDark);
-    if (typeof window.showModal === 'function') {
-        window.showModal('Theme Switched', `System is now in ${isDark ? "Night Shift" : "Daylight"} mode.`);
-    }
+    window.showModal?.('Theme Switched', `System is now in ${isDark ? "Night Shift" : "Daylight"} mode.`);
 }
 
 function checkSavedTheme() {
@@ -205,11 +201,12 @@ function updateThemeIcon(isDark) {
     }
 }
 
-// --- 4. COMMUNITIES (unchanged) ---
+// --- 4. COMMUNITIES ---
 function syncSidebarCommunities() {
     const communityList = JSON.parse(localStorage.getItem('userCommunities')) || [];
     const sidebarCard = document.getElementById('myCommunitiesCard');
     if (!sidebarCard) return;
+
     let listWrapper = document.getElementById('sidebarCommList');
     if (!listWrapper) {
         listWrapper = document.createElement('div');
@@ -217,6 +214,7 @@ function syncSidebarCommunities() {
         listWrapper.className = 'space-y-3 mb-4';
         sidebarCard.querySelector('.flex.justify-between').insertAdjacentElement('afterend', listWrapper);
     }
+
     listWrapper.innerHTML = communityList.slice(0, 3).map(comm => `
         <div class="flex items-center justify-between p-2 rounded-2xl hover:bg-slate-50 transition-all border border-transparent hover:border-slate-100">
             <div class="flex items-center gap-3">
@@ -227,50 +225,51 @@ function syncSidebarCommunities() {
         </div>
     `).join('');
 }
-// New function – only for the Suites button (no conflict with old name)
+
+// --- 5. SUITES MODAL (perfect open/close) ---
 function toggleLinkedOutModal() {
-  const overlay = document.getElementById('linkedOutModalOverlay');
-  if (!overlay) return;
+    const overlay = document.getElementById('linkedOutModalOverlay');
+    if (!overlay) return console.warn("Modal overlay not found");
 
-  const content = document.getElementById('linkedOutDropdown');
-  if (!content) return;
+    const content = document.getElementById('linkedOutDropdown');
+    if (!content) return console.warn("Modal content not found");
 
-  const isOpen = !overlay.classList.contains('hidden');
+    const isOpen = !overlay.classList.contains('hidden');
 
-  if (!isOpen) {
-    // Show
-    overlay.classList.remove('hidden');
-    overlay.classList.add('flex');
-    overlay.offsetHeight; // force reflow
+    if (!isOpen) {
+        // Open
+        overlay.classList.remove('hidden');
+        overlay.classList.add('flex');
+        overlay.offsetHeight; // reflow
 
-    overlay.style.opacity = '1';
-    content.classList.remove('scale-95', 'opacity-0');
-    content.classList.add('scale-100', 'opacity-100');
+        overlay.style.opacity = '1';
+        content.classList.remove('scale-95', 'opacity-0');
+        content.classList.add('scale-100', 'opacity-100');
 
-    document.body.style.overflow = 'hidden';
-  } else {
-    // Hide
-    overlay.style.opacity = '0';
-    content.classList.remove('scale-100', 'opacity-100');
-    content.classList.add('scale-95', 'opacity-0');
+        document.body.style.overflow = 'hidden';
+    } else {
+        // Close
+        overlay.style.opacity = '0';
+        content.classList.remove('scale-100', 'opacity-100');
+        content.classList.add('scale-95', 'opacity-0');
 
-    setTimeout(() => {
-      overlay.classList.add('hidden');
-      overlay.classList.remove('flex');
-      document.body.style.overflow = '';
-    }, 320);
-  }
+        setTimeout(() => {
+            overlay.classList.add('hidden');
+            overlay.classList.remove('flex');
+            document.body.style.overflow = '';
+        }, 320);
+    }
 }
 
-// Close when clicking outside the content area
+// Close modal on outside click
 document.addEventListener('click', function(e) {
-  const overlay = document.getElementById('linkedOutModalOverlay');
-  if (!overlay || overlay.classList.contains('hidden')) return;
+    const overlay = document.getElementById('linkedOutModalOverlay');
+    if (!overlay || overlay.classList.contains('hidden')) return;
 
-  const content = document.getElementById('linkedOutDropdown');
-  if (!content) return;
+    const content = document.getElementById('linkedOutDropdown');
+    if (!content) return;
 
-  if (e.target === overlay || !content.contains(e.target)) {
-    toggleLinkedOutModal();
-  }
+    if (e.target === overlay || !content.contains(e.target)) {
+        toggleLinkedOutModal();
+    }
 });
