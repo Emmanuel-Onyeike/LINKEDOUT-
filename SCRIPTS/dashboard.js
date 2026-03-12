@@ -227,3 +227,34 @@ function syncSidebarCommunities() {
         </div>
     `).join('');
 }
+// New function – only for the Suites button (no conflict with old name)
+function toggleSuitesMenu() {
+  // 1. Try to find your existing menu / modal / dropdown
+  const menu = document.getElementById('suitesDropdown') || 
+               document.getElementById('loafModalOverlay') || 
+               document.querySelector('[data-suites-menu]');
+
+  if (menu) {
+    // If you already have a menu element – just toggle visibility
+    menu.classList.toggle('hidden');
+    
+    // Optional: add body class for overlay/click-outside logic
+    document.body.classList.toggle('suites-open', !menu.classList.contains('hidden'));
+  } 
+  else {
+    // 2. Fallback: show a temporary modal/message (using your existing showModal)
+    if (typeof window.showModal === 'function') {
+      window.showModal(
+        "Suites Menu",
+        "Suites & premium features coming soon 🛋️\nWe're building something special here.",
+        true
+      );
+    } else {
+      // Ultimate fallback if showModal isn't available yet
+      alert("Suites Menu\nComing soon – stay tuned! 🛋️");
+    }
+  }
+
+  // Optional: console log for debugging
+  console.log("Suites menu toggled");
+}
