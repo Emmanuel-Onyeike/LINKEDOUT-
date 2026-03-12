@@ -1,13 +1,16 @@
 /**
- * LINKEDOUT DASHBOARD v5.0 - Supabase Integrated
+ * LINKEDOUT DASHBOARD v5.1 - FIXED Feed Embed + Modal Safety
  * Handlers: Feed Engine, Community Sync, Dark Mode, & Live Auth
  */
-
 document.addEventListener('DOMContentLoaded', async () => {
     // 1. Core Data Fetching
-    await syncAllIdentityElements(); // From global.js
+    if (typeof syncAllIdentityElements === 'function') {
+        await syncAllIdentityElements(); // From global.js
+    } else {
+        console.warn("syncAllIdentityElements not available - skipping identity sync");
+    }
     await renderFeed();
-    
+
     // 2. UI Initialization
     syncSidebarCommunities();
     checkSavedTheme();
@@ -15,23 +18,24 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // --- 1. CORE FEED ENGINE (Supabase Driven) ---
-
-// --- 1. CORE FEED ENGINE (Supabase Driven) ---
-
 async function renderFeed() {
     const feedContainer = document.getElementById('mainFeed');
     const placeholder = document.getElementById('feedPlaceholder');
 
-    // 1. Get the current user ID once so we don't call it inside the loop
+    if (!feedContainer) return;
+
+    // 1. Get current user ID
     const { data: { user } } = await supabase.auth.getUser();
     const currentUserId = user ? user.id : null;
 
-    // 2. Fetch posts with Author Profile data
+    // 2. Fetch posts with EXPLICIT relationship hint to fix PGRST200
+    // Adjust 'posts_user_id_fkey' if your FK constraint name is different
+    // (check Supabase Table Editor > posts > Relationships tab)
     const { data: posts, error } = await supabase
         .from('posts')
         .select(`
             *,
-            profiles (
+            profiles!posts_user_id_fkey (
                 full_name,
                 avatar_url
             )
@@ -40,12 +44,18 @@ async function renderFeed() {
 
     if (error) {
         console.error("Feed Fetch Error:", error);
+        if (error.code === 'PGRST200') {
+            console.warn("PGRST200: Try running 'NOTIFY pgrst, \"reload schema\";' in SQL Editor again, or confirm FK name.");
+        }
+        if (placeholder) {
+            placeholder.innerHTML = '<p class="text-slate-500">Failed to load feed. Try refreshing.</p>';
+        }
         return;
     }
 
     if (posts && posts.length > 0) {
         if (placeholder) placeholder.style.display = 'none';
-        
+
         let postWrapper = document.getElementById('postWrapper');
         if (!postWrapper) {
             postWrapper = document.createElement('div');
@@ -54,11 +64,9 @@ async function renderFeed() {
             feedContainer.appendChild(postWrapper);
         }
 
-        // 3. Render HTML (Using the pre-fetched currentUserId)
+        // 3. Render posts
         postWrapper.innerHTML = posts.map(post => {
-            // Check if user is author locally (no await needed here now)
             const isOwner = currentUserId === post.user_id;
-
             return `
                 <div class="bg-white border border-slate-200 rounded-[32px] overflow-hidden shadow-sm animate-modal-pop">
                     <div class="p-6">
@@ -70,7 +78,7 @@ async function renderFeed() {
                                     <p class="text-[9px] font-bold text-slate-400 uppercase">${new Date(post.created_at).toLocaleDateString()}</p>
                                 </div>
                             </div>
-                            
+                           
                             ${isOwner ? `
                                 <button onclick="deleteLoaf(${post.id})" class="text-slate-300 hover:text-red-500 transition">
                                     <i class="fa-solid fa-trash-can"></i>
@@ -87,29 +95,31 @@ async function renderFeed() {
                 </div>
             `;
         }).join('');
+    } else {
+        if (placeholder) {
+            placeholder.innerHTML = '<p class="text-slate-500 text-center py-8">No loafs yet. Start broadcasting!</p>';
+            placeholder.style.display = 'block';
+        }
     }
 }
 
-/** * HELPER: Check if current user is the owner of the post
- */
-async function isAuthor(postUserId) {
-    const { data: { user } } = await supabase.auth.getUser();
-    return user && user.id === postUserId;
-}
-
 // --- 2. SUBMITTING A NEW LOAF (POST) ---
-
 async function submitLoaf() {
     const input = document.getElementById('postInput');
     const content = input.value.trim();
-    
+
     if (!content) return;
 
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return showModal("Auth Error", "Please log in to broadcast.", false);
+    if (!user) {
+        if (typeof window.showModal === 'function') {
+            window.showModal("Auth Error", "Please log in to broadcast.", false);
+        }
+        return;
+    }
 
     const { error } = await supabase.from('posts').insert([
-        { 
+        {
             user_id: user.id,
             content: content,
             title: "Quick Transmission", // Default title
@@ -118,14 +128,18 @@ async function submitLoaf() {
     ]);
 
     if (error) {
-        showModal("Transmission Failed", error.message, false);
+        if (typeof window.showModal === 'function') {
+            window.showModal("Transmission Failed", error.message, false);
+        }
     } else {
         input.value = '';
         input.style.height = "auto";
         document.getElementById('postActions')?.classList.add('hidden');
-        
+
         await renderFeed(); // Refresh feed
-        showModal("Loaf Published", "Your thoughts have entered the professional void.", true);
+        if (typeof window.showModal === 'function') {
+            window.showModal("Loaf Published", "Your thoughts have entered the professional void.", true);
+        }
     }
 }
 
@@ -133,23 +147,24 @@ async function deleteLoaf(id) {
     const { error } = await supabase.from('posts').delete().eq('id', id);
     if (!error) {
         renderFeed();
-        showModal("Scrubbed", "Transmission successfully removed from the grid.", true);
+        if (typeof window.showModal === 'function') {
+            window.showModal("Scrubbed", "Transmission successfully removed from the grid.", true);
+        }
+    } else {
+        console.error("Delete error:", error);
     }
 }
 
-// --- 3. UI, THEME & STATS ---
-
+// --- 3. UI, THEME & STATS --- (unchanged except modal safety)
 function handlePostInput(el) {
     const postActions = document.getElementById('postActions');
     const counter = document.getElementById('charCounter');
     const maxLength = 500;
-    
+
     if (el.value.length > maxLength) el.value = el.value.substring(0, maxLength);
     if (counter) counter.innerText = `${el.value.length} / ${maxLength}`;
-
     el.style.height = "auto";
     el.style.height = (el.scrollHeight) + "px";
-
     if (el.value.trim().length > 0) {
         postActions?.classList.remove('hidden');
         postActions?.classList.add('flex');
@@ -162,13 +177,11 @@ function handlePostInput(el) {
 async function updateDashboardStats() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-
     // Fetch post count for this user
     const { count } = await supabase
         .from('posts')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id);
-
     const appCountElement = document.getElementById('appCount');
     if (appCountElement) appCountElement.innerText = count || 0;
 }
@@ -177,7 +190,9 @@ function toggleDarkMode() {
     const isDark = document.documentElement.classList.toggle('dark');
     localStorage.setItem('theme', isDark ? 'dark' : 'light');
     updateThemeIcon(isDark);
-    showModal('Theme Switched', `System is now in ${isDark ? "Night Shift" : "Daylight"} mode.`);
+    if (typeof window.showModal === 'function') {
+        window.showModal('Theme Switched', `System is now in ${isDark ? "Night Shift" : "Daylight"} mode.`);
+    }
 }
 
 function checkSavedTheme() {
@@ -200,13 +215,11 @@ function updateThemeIcon(isDark) {
     }
 }
 
-// --- 4. COMMUNITIES (Still Local for now, but linked to IDs) ---
-
+// --- 4. COMMUNITIES (unchanged) ---
 function syncSidebarCommunities() {
     const communityList = JSON.parse(localStorage.getItem('userCommunities')) || [];
     const sidebarCard = document.getElementById('myCommunitiesCard');
     if (!sidebarCard) return;
-
     let listWrapper = document.getElementById('sidebarCommList');
     if (!listWrapper) {
         listWrapper = document.createElement('div');
@@ -214,7 +227,6 @@ function syncSidebarCommunities() {
         listWrapper.className = 'space-y-3 mb-4';
         sidebarCard.querySelector('.flex.justify-between').insertAdjacentElement('afterend', listWrapper);
     }
-
     listWrapper.innerHTML = communityList.slice(0, 3).map(comm => `
         <div class="flex items-center justify-between p-2 rounded-2xl hover:bg-slate-50 transition-all border border-transparent hover:border-slate-100">
             <div class="flex items-center gap-3">
