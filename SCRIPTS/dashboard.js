@@ -228,57 +228,49 @@ function syncSidebarCommunities() {
     `).join('');
 }
 // New function – only for the Suites button (no conflict with old name)
-function toggleSuitesModal() {
-  const overlay = document.getElementById('loafModalOverlay');
+function toggleLinkedOutModal() {
+  const overlay = document.getElementById('linkedOutModalOverlay');
   if (!overlay) return;
 
-  const content = document.getElementById('loafDropdown');
+  const content = document.getElementById('linkedOutDropdown');
   if (!content) return;
 
   const isOpen = !overlay.classList.contains('hidden');
 
   if (!isOpen) {
-    // Open modal
+    // Show
     overlay.classList.remove('hidden');
     overlay.classList.add('flex');
-
-    // Force reflow so transitions work
-    overlay.offsetHeight;
+    overlay.offsetHeight; // force reflow
 
     overlay.style.opacity = '1';
     content.classList.remove('scale-95', 'opacity-0');
     content.classList.add('scale-100', 'opacity-100');
 
-    // Prevent body scroll
     document.body.style.overflow = 'hidden';
   } else {
-    // Close modal
+    // Hide
     overlay.style.opacity = '0';
     content.classList.remove('scale-100', 'opacity-100');
     content.classList.add('scale-95', 'opacity-0');
 
-    // Wait for animation to finish before hiding
     setTimeout(() => {
       overlay.classList.add('hidden');
       overlay.classList.remove('flex');
       document.body.style.overflow = '';
-    }, 320); // slightly longer than your transition duration (300ms)
+    }, 320);
   }
 }
 
-// Bonus: close when clicking outside the modal content
-document.addEventListener('click', function closeModalOnOutsideClick(e) {
-  const overlay = document.getElementById('loafModalOverlay');
-  if (!overlay) return;
-  if (overlay.classList.contains('hidden')) return;
+// Close when clicking outside the content area
+document.addEventListener('click', function(e) {
+  const overlay = document.getElementById('linkedOutModalOverlay');
+  if (!overlay || overlay.classList.contains('hidden')) return;
 
-  const content = document.getElementById('loafDropdown');
+  const content = document.getElementById('linkedOutDropdown');
   if (!content) return;
 
-  // Clicked on overlay but not inside content → close
   if (e.target === overlay || !content.contains(e.target)) {
-    toggleSuitesModal();
-    // Remove listener after close to avoid memory leak (optional)
-    // document.removeEventListener('click', closeModalOnOutsideClick);
+    toggleLinkedOutModal();
   }
 });
