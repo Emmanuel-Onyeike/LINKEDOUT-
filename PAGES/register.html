@@ -11,17 +11,15 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
 </head>
 <body class="bg-soft-blue min-h-screen flex flex-col antialiased">
-
     <nav class="p-6 max-w-7xl mx-auto w-full">
         <a href="/index.html" class="flex items-center group w-fit">
             <img src="/IMG/Logo.jpeg" alt="Logo" class="h-8 w-8 rounded-lg object-cover">
             <span class="ml-2 font-black text-slate-900 tracking-tighter">BACK</span>
         </a>
     </nav>
-
     <main class="flex-grow flex items-center justify-center px-4 pb-12">
         <div class="grid md:grid-cols-2 gap-12 items-center max-w-5xl w-full bg-white p-8 md:p-12 rounded-[3rem] shadow-xl border border-slate-50">
-            
+           
             <div class="hidden md:block bg-blue-50 rounded-[2.5rem] p-10 relative overflow-hidden group">
                 <img src="/IMG/register.jpg" alt="Illustration" class="w-full h-auto object-contain relative z-10 drop-shadow-2xl">
                 <div class="mt-8 text-center relative z-10">
@@ -29,24 +27,24 @@
                     <p class="text-slate-500 text-base mt-2 italic">Grab your favorite snack and join the others.</p>
                 </div>
             </div>
-    
+   
             <div class="space-y-8">
                 <div>
                     <div class="inline-block bg-blue-100 text-blue-600 text-[10px] font-black px-3 py-1 rounded-full mb-4 uppercase tracking-widest">Entry Form</div>
                     <h1 class="text-4xl font-black text-slate-900 tracking-tight leading-none">Create your Un-Profile</h1>
                 </div>
-    
+   
                 <form id="registerForm" class="space-y-4">
                     <div>
                         <label class="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2 ml-1">Full Name</label>
                         <input type="text" id="regFullName" required placeholder="John Doe" class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 focus:border-blue-400 focus:outline-none transition-all">
                     </div>
-                
+               
                     <div>
                         <label class="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2 ml-1">Email Address</label>
                         <input type="email" id="regEmail" required placeholder="lazy@loaf.com" class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 focus:border-blue-400 focus:outline-none transition-all">
                     </div>
-                
+               
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2 ml-1">Password</label>
@@ -57,24 +55,24 @@
                             <input type="password" id="regConfirmPass" required placeholder="••••••••" class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 focus:border-blue-400 focus:outline-none transition-all">
                         </div>
                     </div>
-                    
+                   
                     <div class="pt-6">
                         <button type="submit" class="w-full bg-slate-900 text-white py-5 rounded-2xl font-black text-lg hover:bg-blue-600 transition-all shadow-xl">
                             Join the Bench 🛋️
                         </button>
                     </div>
                 </form>
-    
+   
                 <p class="text-center text-slate-400 text-sm font-medium">
                     Already a loafer? <a href="/PAGES/login.html" class="text-blue-600 font-bold hover:underline">Login here</a>
                 </p>
             </div>
         </div>
     </main>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
+
+    <!-- Scripts - Supabase first, then your logic files -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="/SCRIPTS/global.js"></script>
-    
     <script src="/SCRIPTS/auth.js"></script>
 </body>
 </html>
