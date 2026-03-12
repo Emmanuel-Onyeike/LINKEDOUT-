@@ -86,11 +86,14 @@
         </div>
     </header>
 
-    <div id="loafModalOverlay" class="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-[100] hidden items-center justify-center p-4">
-        <div id="loafDropdown" class="bg-[#1a2533] w-full max-w-sm rounded-[3rem] p-8 border border-slate-700 shadow-2xl scale-95 transition-transform duration-300">
+<div id="linkedOutModalOverlay" class="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-[100] hidden flex items-center justify-center p-4 transition-opacity duration-300">
+  <div id="linkedOutDropdown" class="bg-[#1a2533] w-full max-w-sm rounded-[3rem] p-8 border border-slate-700 shadow-2xl scale-95 opacity-0 transition-all duration-300">
             <div class="flex justify-between items-center mb-8 px-2">
                 <h3 class="text-blue-400 text-sm font-black uppercase tracking-widest opacity-50">LinkedOut Suites</h3>
-                <button onclick="toggleLoafMenu()" class="text-slate-400 hover:text-white text-2xl">&times;</button>
+              <button 
+        onclick="toggleLinkedOutModal()" 
+        class="text-slate-400 hover:text-white text-3xl leading-none font-light hover:scale-110 transition-transform"
+      >×</button>
             </div>
             
             <div class="suites-grid">
