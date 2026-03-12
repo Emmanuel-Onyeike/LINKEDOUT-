@@ -505,9 +505,17 @@
         </div>
     </div>
 
-    <script src="/SCRIPTS/dashboard.js"></script>
+  
+   <!-- Supabase first - add defer so it loads async but before your code runs -->
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<!-- Then global.js - also defer -->
+<script defer src="/SCRIPTS/global.js"></script>
+
+<!-- Then page-specific scripts last -->
+<script defer src="/SCRIPTS/dashboard.js"></script>   <!-- or auth.js, etc. -->
+      <script src="/SCRIPTS/auth.js"></script>
     <script src="/SCRIPTS/dashboard-profile.js"></script>
     <script src="/SCRIPTS/recruitment-engine.js"></script>
-    <script src="/SCRIPTS/global.js"></script>
 </body>
 </html>
