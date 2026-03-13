@@ -5,9 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Recommendations | LinkedOut</title>
     <script src="https://cdn.tailwindcss.com"></script>
-      <link rel="icon" type="image/webp" href="/IMG/Logo.jpeg" />
+    <link rel="icon" type="image/webp" href="/IMG/Logo.jpeg" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-   
 </head>
 <body class="bg-slate-50 dark:bg-slate-950 font-sans antialiased text-slate-900 transition-colors duration-500">
 
@@ -33,7 +32,7 @@
         <div class="flex flex-wrap gap-3 mb-12" id="filterGroup">
             <button class="filter-btn px-6 py-2 rounded-full border border-slate-200 dark:border-slate-800 text-[10px] font-black uppercase tracking-widest transition-all" data-filter="verified">Verified</button>
             <button class="filter-btn px-6 py-2 rounded-full border border-slate-200 dark:border-slate-800 text-[10px] font-black uppercase tracking-widest transition-all" data-filter="unverified">Unverified</button>
-            <button class="filter-btn active bg-cyan-500 text-white px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest" data-filter="tier1">Tier 1</button>
+            <button class="filter-btn active bg-cyan-500 text-white px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg shadow-cyan-500/20" data-filter="tier1">Tier 1</button>
             <button class="filter-btn px-6 py-2 rounded-full border border-slate-200 dark:border-slate-800 text-[10px] font-black uppercase tracking-widest transition-all" data-filter="tier2">Tier 2</button>
             <button class="filter-btn px-6 py-2 rounded-full border border-slate-200 dark:border-slate-800 text-[10px] font-black uppercase tracking-widest transition-all" data-filter="tier3">Tier 3</button>
         </div>
@@ -41,11 +40,11 @@
         <div id="recommendationContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4">
             </div>
     </main>
-<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script defer src="/SCRIPTS/global.js"></script>
-    <script src="/SCRIPTS/dashboard.js"></script>
-    <script src="/SCRIPTS/auth.js"></script>
-    <script src="/SCRIPTS/dashboard-profile.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script src="/SCRIPTS/global.js"></script>
+
     <script src="/SCRIPTS/recommendations.js"></script>
        
 </body>
