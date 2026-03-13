@@ -226,53 +226,43 @@ function syncSidebarCommunities() {
     `).join('');
 }
 
-// --- 5. SUITES MODAL (perfect open/close) ---
 function toggleLinkedOutModal() {
   const overlay = document.getElementById('linkedOutModalOverlay');
   if (!overlay) {
-    console.error("Modal overlay not found");
-    return;
-  }
-
-  const content = document.getElementById('linkedOutDropdown');
-  if (!content) {
-    console.error("Modal content not found");
+    console.error("Overlay not found");
     return;
   }
 
   if (overlay.classList.contains('hidden')) {
-    // Open - exactly like your working force test
+    // Open - exact steps from your working console test
     overlay.classList.remove('hidden');
     overlay.classList.add('flex');
     overlay.style.opacity = '1';
-    content.classList.remove('scale-95', 'opacity-0');
-    content.classList.add('scale-100', 'opacity-100');
+
+    const content = document.getElementById('linkedOutDropdown');
+    if (content) {
+      content.classList.remove('scale-95', 'opacity-0');
+      content.classList.add('scale-100', 'opacity-100');
+    }
+
     document.body.style.overflow = 'hidden';
   } else {
     // Close
     overlay.style.opacity = '0';
-    content.classList.remove('scale-100', 'opacity-100');
-    content.classList.add('scale-95', 'opacity-0');
 
-    // Wait just long enough for fade-out
+    const content = document.getElementById('linkedOutDropdown');
+    if (content) {
+      content.classList.remove('scale-100', 'opacity-100');
+      content.classList.add('scale-95', 'opacity-0');
+    }
+
+    // Hide after fade (simple delay)
     setTimeout(() => {
       overlay.classList.add('hidden');
       overlay.classList.remove('flex');
       document.body.style.overflow = '';
     }, 300);
   }
+
+  console.log("Modal toggle called - current hidden:", overlay.classList.contains('hidden'));
 }
-
-// Optional but recommended: close on outside click
-document.addEventListener('click', function(e) {
-  const overlay = document.getElementById('linkedOutModalOverlay');
-  if (!overlay || overlay.classList.contains('hidden')) return;
-
-  const content = document.getElementById('linkedOutDropdown');
-  if (!content) return;
-
-  // Clicked outside content → close
-  if (e.target === overlay || !content.contains(e.target)) {
-    toggleLinkedOutModal();
-  }
-});
