@@ -383,3 +383,38 @@ async function loadRecommendations() {
 
 // Run on load
 document.addEventListener('DOMContentLoaded', loadRecommendations);
+/**
+ * DASHBOARD IDENTITY SYNC
+ */
+document.addEventListener('DOMContentLoaded', async () => {
+    await syncDashboardImages();
+});
+
+async function syncDashboardImages() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return window.location.href = '/SCRIPTS/auth.js';
+
+    // Fetch the latest profile data
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('avatar_url, full_name')
+        .eq('id', user.id)
+        .single();
+
+    if (profile && profile.avatar_url) {
+        // We add ?t=... to force the browser to ignore its cache and show the NEW photo
+        const freshUrl = `${profile.avatar_url}?t=${Date.now()}`;
+        
+        // Update the small Nav image
+        const navImg = document.getElementById('dashPfpNav');
+        if (navImg) navImg.src = freshUrl;
+
+        // Update the large Sidebar image
+        const largeImg = document.getElementById('dashPfpLarge');
+        if (largeImg) largeImg.src = freshUrl;
+        
+        // Bonus: Update the name if you have a dashName element
+        const nameEl = document.getElementById('dashName');
+        if (nameEl) nameEl.innerText = profile.full_name;
+    }
+}
