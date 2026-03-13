@@ -1,30 +1,24 @@
 document.addEventListener('DOMContentLoaded', async () => {
-    // 1. Safety Guard: Only run if we are actually on the Profile page
     const nameDisplay = document.getElementById('userFullName');
     if (!nameDisplay) return; 
 
-    // 2. Extract User ID from the URL (?id=...)
     const params = new URLSearchParams(window.location.search);
     const userId = params.get('id');
 
     if (!userId) {
-        console.warn("No user ID found, returning to recommendations...");
         window.location.href = '/PAGES/recommendations.html';
         return;
     }
 
-    // 3. Load the Profile Data
     await loadUserProfile(userId);
-    
-    // 4. Check initial follow status to set button UI
     checkInitialFollowStatus(userId);
 });
 
-// --- NOTIFICATION LOGIC ---
+// --- BACKGROUND NOTIFICATION (Non-blocking) ---
 async function createFollowNotification(myId, theirId) {
     try {
         const { data: myProfile } = await supabase.from('profiles').select('full_name').eq('id', myId).single();
-        const followerName = myProfile ? myProfile.full_name : "A Loafer";
+        const followerName = myProfile?.full_name || "A Loafer";
 
         await supabase.from('notifications').insert([{
             user_id: theirId,
@@ -34,7 +28,7 @@ async function createFollowNotification(myId, theirId) {
             is_read: false
         }]);
     } catch (err) {
-        console.error("Notification Error:", err);
+        console.warn("Notification failed in background:", err);
     }
 }
 
@@ -52,23 +46,19 @@ async function loadUserProfile(userId) {
             return;
         }
 
-        // Update UI
         document.getElementById('navUserName').innerText = profile.full_name;
         document.getElementById('userFullName').innerText = profile.full_name;
         document.getElementById('userRole').innerText = profile.role || 'Professional Loafer';
         document.getElementById('userAvatar').src = profile.avatar_url || '/IMG/Logo.jpeg';
 
-        // Load stats (Followers/Following/Loafs)
         await loadProfileStats(userId);
-
     } catch (err) {
-        console.error("Critical Profile Error:", err.message);
+        console.error("Profile Load Error:", err.message);
     }
 }
 
 // --- STATS REFRESH ---
 async function loadProfileStats(userId) {
-    // Get Follower Count
     const { count: followers } = await supabase
         .from('follows')
         .select('*', { count: 'exact', head: true })
@@ -76,11 +66,9 @@ async function loadProfileStats(userId) {
 
     const followerEl = document.getElementById('statFollowers');
     if (followerEl) followerEl.innerText = followers || 0;
-    
-    // Note: You can add Following/Loaf counts here later using similar logic
 }
 
-// --- FOLLOW ACTION ---
+// --- FOLLOW ACTION (Optimized for Speed) ---
 async function handleFollowAction() {
     const { data: { user: currentUser } } = await supabase.auth.getUser();
     const params = new URLSearchParams(window.location.search);
@@ -89,6 +77,7 @@ async function handleFollowAction() {
     if (!currentUser) return showModalAlert("LOG IN TO FOLLOW THIS LOAFER");
     if (currentUser.id === targetUserId) return showModalAlert("YOU CANNOT FOLLOW YOURSELF");
 
+    // Check current state
     const { data: existingFollow } = await supabase
         .from('follows')
         .select('*')
@@ -97,32 +86,45 @@ async function handleFollowAction() {
         .single();
 
     if (existingFollow) {
+        // 1. Update UI Instantly
+        updateFollowButtonUI(false);
+        
+        // 2. Perform DB action
         const { error } = await supabase
             .from('follows')
             .delete()
             .eq('follower_id', currentUser.id)
             .eq('following_id', targetUserId);
 
-        if (!error) {
-            showModalAlert("UNFOLLOWED SUCCESSFULLY");
-            updateFollowButtonUI(false);
+        if (error) {
+            updateFollowButtonUI(true); // Revert on error
+            showModalAlert("ACTION FAILED");
+        } else {
+            showModalAlert("UNFOLLOWED");
             loadProfileStats(targetUserId); 
         }
     } else {
+        // 1. Update UI Instantly
+        updateFollowButtonUI(true);
+        
+        // 2. Perform DB action
         const { error } = await supabase
             .from('follows')
             .insert([{ follower_id: currentUser.id, following_id: targetUserId }]);
 
-        if (!error) {
-            await createFollowNotification(currentUser.id, targetUserId);
+        if (error) {
+            updateFollowButtonUI(false); // Revert on error
+            showModalAlert("FOLLOW FAILED");
+        } else {
             showModalAlert("FOLLOWED SUCCESSFULLY");
-            updateFollowButtonUI(true);
             loadProfileStats(targetUserId);
+            
+            // 3. Fire-and-forget notification (No 'await' so it doesn't lag the UI)
+            createFollowNotification(currentUser.id, targetUserId);
         }
     }
 }
 
-// Helper to check status on page load
 async function checkInitialFollowStatus(targetUserId) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
