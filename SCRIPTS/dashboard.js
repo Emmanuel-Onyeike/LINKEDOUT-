@@ -88,8 +88,14 @@ async function renderFeed() {
 
 async function submitLoaf() {
     const input = document.getElementById('postInput');
+    const btn = document.querySelector('button[onclick="submitLoaf()"]');
     const content = input?.value?.trim();
     if (!content) return;
+
+    // Loading State
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return alert("Login first");
@@ -101,76 +107,87 @@ async function submitLoaf() {
         category: "General"
     }]);
 
+    btn.disabled = false;
+    btn.innerHTML = originalText;
+
     if (error) {
         console.error(error);
-        alert("Post failed: " + error.message);
+        window.showModal?.("Error", error.message, false);
     } else {
         input.value = '';
-        await renderFeed();
-        alert("Posted!");
+        // Note: 'renderFeed()' is no longer needed here because Realtime handles it!
     }
 }
 
-
-window.deleteLoaf = async function(id) {
-    // Show custom yes/no modal
-    showDeleteConfirmModal(id);
-};
-
-// New function: shows centered yes/no modal
 function showDeleteConfirmModal(postId) {
-    const modal = document.getElementById('globalModal');
+    let modal = document.getElementById('premiumDeleteModal');
     if (!modal) {
-        if (confirm("Delete this loaf forever?")) {
-            performDelete(postId);
-        }
-        return;
+        modal = document.createElement('div');
+        modal.id = 'premiumDeleteModal';
+        modal.className = 'fixed inset-0 z-[2000] flex items-center justify-center p-6';
+        document.body.appendChild(modal);
     }
 
-    // Customize modal for delete confirmation
-    document.getElementById('modalTitle').textContent = "Delete Loaf";
-    document.getElementById('modalBody').innerHTML = `
-        Are you sure you want to delete this loaf?<br>
-        <small>This action cannot be undone.</small>
-    `;
-    document.getElementById('modalEmoji').textContent = '🗑️';
-
-    // Replace the single "Understood" button with Yes/No
-    const buttonContainer = document.querySelector('#globalModal button')?.parentElement;
-    if (buttonContainer) {
-        buttonContainer.innerHTML = `
-            <div class="flex gap-4">
-                <button onclick="closeModal()" class="flex-1 bg-slate-700 text-white py-4 rounded-2xl font-bold hover:bg-slate-600 transition">
-                    No, Cancel
+    modal.innerHTML = `
+        <div class="absolute inset-0 bg-slate-900/80 backdrop-blur-md"></div>
+        <div class="relative bg-white w-full max-w-sm rounded-[44px] p-10 text-center shadow-2xl animate-in zoom-in duration-300">
+            <div class="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                <i class="fa-solid fa-trash-can text-2xl"></i>
+            </div>
+            <h2 class="text-xl font-black italic tracking-tighter uppercase mb-2">Trash this Loaf?</h2>
+            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed mb-10">
+                Once deleted, this loaf is gone from the grid forever.
+            </p>
+            <div class="flex flex-col gap-3">
+                <button onclick="performDelete(${postId})" class="w-full py-5 bg-red-600 text-white text-[9px] font-black uppercase tracking-widest rounded-2xl active:scale-95 transition-all shadow-lg shadow-red-200">
+                    Yes, Delete Forever
                 </button>
-                <button onclick="performDelete(${postId}); closeModal()" class="flex-1 bg-red-600 text-white py-4 rounded-2xl font-bold hover:bg-red-700 transition">
-                    Yes, Delete
+                <button onclick="document.getElementById('premiumDeleteModal').remove()" class="w-full py-5 bg-slate-100 text-slate-500 text-[9px] font-black uppercase tracking-widest rounded-2xl active:scale-95 transition-all">
+                    No, Keep it
                 </button>
             </div>
-        `;
-    }
-
-    // Show the modal
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
+        </div>
+    `;
     document.body.style.overflow = 'hidden';
 }
 
-// The actual delete logic
 async function performDelete(id) {
-    const { error } = await supabase
-        .from('posts')
-        .delete()
-        .eq('id', id);
+    const { error } = await supabase.from('posts').delete().eq('id', id);
+    const modal = document.getElementById('premiumDeleteModal');
+    if (modal) modal.remove();
+    document.body.style.overflow = 'auto';
 
     if (error) {
-        console.error("Delete failed:", error);
-        window.showModal?.("Error", "Could not delete: " + error.message, false);
-    } else {
-        await renderFeed();
-        window.showModal?.("Deleted", "Loaf removed successfully.", true);
+        window.showModal?.("Error", error.message, false);
     }
+    // Again, 'renderFeed()' is handled by the 'on(DELETE)' listener!
 }
+function initRealtime() {
+    supabase
+        .channel('public:posts')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'posts' }, async (payload) => {
+            // When a new post is inserted, fetch that specific user's profile
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('full_name, avatar_url')
+                .eq('id', payload.new.user_id)
+                .single();
+            
+            const { data: { user } } = await supabase.auth.getUser();
+            const isOwner = user?.id === payload.new.user_id;
+            
+            // Add it to the top of the UI
+            appendNewPost(payload.new, profile, isOwner);
+        })
+        .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'posts' }, (payload) => {
+            // Remove the deleted post from the UI automatically
+            const postEl = document.querySelector(`[data-post-id="${payload.old.id}"]`);
+            if (postEl) postEl.remove();
+        })
+        .subscribe();
+}
+
+
 // --- 3. UI, THEME & STATS ---
 function handlePostInput(el) {
     const postActions = document.getElementById('postActions');
