@@ -199,7 +199,7 @@ async function renderFeed() {
                 </div>
 
                 <div class="flex items-center gap-6 px-6 pb-5 pt-3 border-t border-slate-100">
-                    <button onclick="handleLike('${post.id}', this, ${JSON.stringify(isLiked)})"
+                    <button onclick="handleLike('${post.id}', this, ${isLiked ? 'true' : 'false'})"
                             class="flex items-center gap-1.5 transition-colors ${isLiked ? 'text-pink-500' : 'text-slate-500 hover:text-pink-500'}">
                         <i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart text-lg"></i>
                         <span class="text-xs font-semibold">${likeCount}</span>
@@ -211,7 +211,7 @@ async function renderFeed() {
                         <span class="text-xs font-semibold uppercase">Reply</span>
                     </button>
 
-                    <button onclick="handleRepost('${post.id}', ${JSON.stringify(isReposted)})"
+                    <button onclick="handleRepost('${post.id}', ${isReposted ? 'true' : 'false'})"
                             class="flex items-center gap-1.5 transition-colors ${isReposted ? 'text-green-600' : 'text-slate-500 hover:text-green-600'}">
                         <i class="fa-solid fa-retweet text-lg"></i>
                         <span class="text-xs font-semibold">${repostCount}</span>
