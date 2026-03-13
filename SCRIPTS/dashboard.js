@@ -418,3 +418,19 @@ async function syncDashboardImages() {
         if (nameEl) nameEl.innerText = profile.full_name;
     }
 }
+// Listen for any changes to YOUR profile row in real-time
+supabase
+    .channel('dashboard_pfp_sync')
+    .on('postgres_changes', { 
+        event: 'UPDATE', 
+        schema: 'public', 
+        table: 'profiles' 
+    }, (payload) => {
+        // If the updated row is mine, refresh the images
+        if (payload.new.id === user.id) {
+            const freshUrl = `${payload.new.avatar_url}?t=${Date.now()}`;
+            if (document.getElementById('dashPfpNav')) document.getElementById('dashPfpNav').src = freshUrl;
+            if (document.getElementById('dashPfpLarge')) document.getElementById('dashPfpLarge').src = freshUrl;
+        }
+    })
+    .subscribe();
