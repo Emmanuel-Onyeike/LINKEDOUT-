@@ -85,3 +85,24 @@ function clearAll() {
         location.reload();
     }
 }
+
+async function createFollowNotification(actorId, targetUserId) {
+    // Get the name of the person who is following
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', actorId)
+        .single();
+
+    const { error } = await supabase
+        .from('notifications')
+        .insert([{
+            user_id: targetUserId, // The person receiving the alert
+            actor_id: actorId,      // The person who clicked follow
+            type: 'follow',
+            content: `${profile.full_name} started following you.`,
+            is_read: false
+        }]);
+    
+    if (error) console.error("Notification Error:", error.message);
+}
