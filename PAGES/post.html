@@ -55,8 +55,12 @@
             </div>
 
             <div class="px-6 pb-2">
-                <textarea id="postInput" placeholder="What are you not doing today?" 
-                    class="w-full min-h-[180px] text-xl font-medium text-slate-700 placeholder:text-slate-300 border-none focus:ring-0 resize-none"></textarea>
+                <textarea id="postInput"
+                            class="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium text-slate-700 placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-400 outline-none transition-all resize-none overflow-hidden"
+                            placeholder="What do you wish to drop for the lazy people today?..."
+                            rows="1"
+                            oninput="handlePostInput(this)"></textarea>
+                       
             </div>
 
             <div id="imagePreviewContainer" class="hidden px-6 pb-6">
