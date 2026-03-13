@@ -36,7 +36,7 @@ async function renderFeed() {
 
     if (!posts || posts.length === 0) {
         if (placeholder) {
-            placeholder.innerHTML = '<p class="text-slate-500 text-center py-8">No loafs yet. Be the first!</p>';
+            placeholder.innerHTML = '<p class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] max-w-[200px] leading-relaxed">No loafs yet. Be the first!</p>';
             placeholder.style.display = 'block';
         }
         return;
