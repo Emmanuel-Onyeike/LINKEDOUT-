@@ -1,449 +1,508 @@
 /**
- * LINKEDOUT MASTER DASHBOARD - FULL COMPLETE BUILD
- * RESTORED: All 600+ Lines of Original Logic
- * UPDATED: Interactivity with Supabase
- */
-
+ * LINKEDOUT DASHBOARD - FIXED VERSION (no syntax errors, reliable feed)
+ */
 document.addEventListener('DOMContentLoaded', async () => {
-    console.log("LinkedOut Terminal: Initializing Full Dashboard...");
-
-    // 1. INITIAL IDENTITY SYNC (RESTORED)
-    if (typeof syncAllIdentityElements === 'function') {
-        await syncAllIdentityElements();
-    }
-    
-    // 2. CHECK NAPPING STATUS (ORIGINAL 1:1)
-    const isNapping = localStorage.getItem('nappingMode');
-    const badge = document.getElementById('statusBadge');
-    if (isNapping === 'enabled' && badge) {
-        badge.classList.remove('hidden');
-        console.log("User Status: Napping Mode Active");
-    }
-
-    // 3. CORE ENGINE LOAD
-    await renderFeed();
-    syncSidebarCommunities();
-    checkSavedTheme();
-    updateDashboardStats();
-    loadRecommendations();
-
-    // 4. AUTHENTICATED USER SYNC
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-        syncIdentity(user.id);
-        checkPromotion(user.id);
-        
-        // Subscribe to real-time updates for notifications
-        const channel = supabase
-            .channel('dashboard-updates')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, payload => {
-                console.log('Real-time update:', payload);
-                renderFeed();
-            })
-            .subscribe();
-    }
+    if (typeof syncAllIdentityElements === 'function') {
+        await syncAllIdentityElements();
+    }
+    await renderFeed();
+    syncSidebarCommunities();
+    checkSavedTheme();
+    updateDashboardStats();
 });
 
-// --- SECTION 1: THE FEED RENDERER (FULL LOGIC) ---
-
 async function renderFeed() {
-    const feedContainer = document.getElementById('mainFeed');
-    const placeholder = document.getElementById('feedPlaceholder');
-    if (!feedContainer) return;
+    const feedContainer = document.getElementById('mainFeed');
+    const placeholder = document.getElementById('feedPlaceholder');
+    if (!feedContainer) return;
 
-    const { data: { user: authUser } } = await supabase.auth.getUser();
-    const currentUserId = authUser ? authUser.id : null;
+    const { data: { user } } = await supabase.auth.getUser();
+    const currentUserId = user ? user.id : null;
 
-    // Fetching posts with profile joins and nested interaction arrays
-    const { data: posts, error } = await supabase
-        .from('posts')
-        .select(`
-            *,
-            profiles (id, full_name, avatar_url, role, bio),
-            likes (user_id),
-            reposts (user_id),
-            comments (id)
-        `)
-        .order('created_at', { ascending: false });
+    // Simple fetch - no join, no error
+    const { data: posts, error } = await supabase
+        .from('posts')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-    if (error) {
-        console.error("Feed Error:", error);
-        if (placeholder) {
-            placeholder.innerHTML = `<p class="text-red-500 font-black">FEED SYNC FAILED: ${error.message}</p>`;
-        }
-        return;
-    }
+    if (error) {
+        console.error("Feed error:", error);
+        if (placeholder) {
+            placeholder.innerHTML = '<p class="text-red-500 text-center py-8">Feed error: ' + (error.message || 'Unknown') + '</p>';
+            placeholder.style.display = 'block';
+        }
+        return;
+    }
+if (!posts || posts.length === 0) {
+        if (placeholder) {
+            placeholder.innerHTML = `
+                <div class="flex flex-col items-center justify-center py-20 px-6 animate-in fade-in duration-700">
+                    <div class="w-20 h-20 bg-white border border-slate-100 rounded-[32px] flex items-center justify-center shadow-sm mb-6">
+                        <i class="fa-solid fa-mug-hot text-slate-200 text-2xl"></i>
+                    </div>
+                    
+                    <h3 class="text-[11px] font-black text-slate-800 uppercase tracking-[0.3em] mb-2">
+                        Grid is Empty
+                    </h3>
+                    <p class="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] max-w-[220px] leading-relaxed text-center">
+                        No loafs detected in the wild. Start the movement.
+                    </p>
 
-    if (!posts || posts.length === 0) {
-        if (placeholder) placeholder.style.display = 'block';
-        return;
-    }
+                    <div class="mt-8 opacity-20">
+                        <div class="w-1 h-12 bg-gradient-to-b from-slate-400 to-transparent rounded-full"></div>
+                    </div>
+                </div>
+            `;
+            placeholder.style.display = 'block';
+        }
+        return;
+    }
 
-    if (placeholder) placeholder.style.display = 'none';
+    if (placeholder) placeholder.style.display = 'none';
 
-    let postWrapper = document.getElementById('postWrapper');
-    if (!postWrapper) {
-        postWrapper = document.createElement('div');
-        postWrapper.id = 'postWrapper';
-        postWrapper.className = 'space-y-6';
-        feedContainer.appendChild(postWrapper);
-    }
+    let postWrapper = document.getElementById('postWrapper');
+    if (!postWrapper) {
+        postWrapper = document.createElement('div');
+        postWrapper.id = 'postWrapper';
+        postWrapper.className = 'space-y-4';
+        feedContainer.appendChild(postWrapper);
+    }
 
-    postWrapper.innerHTML = posts.map(post => {
-        const profile = post.profiles || {};
-        const isOwner = currentUserId === post.user_id;
-        const isLiked = post.likes?.some(l => l.user_id === currentUserId);
-        const isReposted = post.reposts?.some(r => r.user_id === currentUserId);
-        const postDate = new Date(post.created_at).toLocaleDateString('en-US', { 
-            month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' 
-        });
+    // Get profiles separately
+    const userIds = [...new Set(posts.map(p => p.user_id))];
+    const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('id, full_name, avatar_url')
+        .in('id', userIds);
 
-        return `
-            <div class="bg-white border border-slate-200 rounded-[40px] overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 group">
-                <div class="p-8">
-                    <div class="flex items-center justify-between mb-6">
-                        <div class="flex items-center gap-4 cursor-pointer" onclick="window.location.href='/PAGES/view-profile.html?id=${post.user_id}'">
-                            <div class="relative">
-                                <img src="${profile.avatar_url || '/IMG/Logo.jpeg'}" class="w-12 h-12 rounded-[20px] border-2 border-slate-50 object-cover shadow-sm">
-                                <div class="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></div>
-                            </div>
-                            <div>
-                                <h4 class="text-[11px] font-black text-slate-800 uppercase tracking-tight">${profile.full_name || 'Anonymous'}</h4>
-                                <p class="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em]">${postDate}</p>
-                            </div>
-                        </div>
-                        
-                        ${isOwner ? `
-                            <button onclick="deleteLoaf(${post.id})" class="w-10 h-10 flex items-center justify-center rounded-2xl text-slate-200 hover:bg-red-50 hover:text-red-500 transition-all">
-                                <i class="fa-solid fa-trash-can text-xs"></i>
-                            </button>
-                        ` : `
-                            <button class="text-slate-200 hover:text-slate-400"><i class="fa-solid fa-ellipsis"></i></button>
-                        `}
-                    </div>
+    const profileMap = {};
+    profilesData?.forEach(p => profileMap[p.id] = p);
 
-                    <p class="text-[13px] text-slate-600 leading-[1.8] font-medium mb-8">${post.content}</p>
+    postWrapper.innerHTML = posts.map(post => {
+        const profile = profileMap[post.user_id] || {};
+        const isOwner = currentUserId === post.user_id;
 
-                    <div class="flex items-center justify-between pt-6 border-t border-slate-50">
-                        <div class="flex items-center gap-8">
-                            <button onclick="handleLike(${post.id}, this, ${isLiked})" class="flex items-center gap-2.5 ${isLiked ? 'text-pink-500' : 'text-slate-400'} group/btn transition-all">
-                                <div class="w-9 h-9 rounded-full flex items-center justify-center group-hover/btn:bg-pink-50 transition-colors">
-                                    <i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart text-[14px]"></i>
-                                </div>
-                                <span class="text-[11px] font-black">${post.likes?.length || 0}</span>
-                            </button>
-
-                            <button onclick="window.location.href='/PAGES/post.html?id=${post.id}'" class="flex items-center gap-2.5 text-slate-400 group/btn transition-all">
-                                <div class="w-9 h-9 rounded-full flex items-center justify-center group-hover/btn:bg-cyan-50 transition-colors">
-                                    <i class="fa-regular fa-comment text-[14px]"></i>
-                                </div>
-                                <span class="text-[11px] font-black uppercase tracking-widest">${post.comments?.length || 0}</span>
-                            </button>
-
-                            <button onclick="handleRepost(${post.id}, ${isReposted})" class="flex items-center gap-2.5 ${isReposted ? 'text-green-500' : 'text-slate-400'} group/btn transition-all">
-                                <div class="w-9 h-9 rounded-full flex items-center justify-center group-hover/btn:bg-green-50 transition-colors">
-                                    <i class="fa-solid fa-retweet text-[14px]"></i>
-                                </div>
-                                <span class="text-[11px] font-black uppercase tracking-widest">${post.reposts?.length || 0}</span>
-                            </button>
-                        </div>
-
-                        <button onclick="handleShare(${post.id})" class="w-9 h-9 flex items-center justify-center text-slate-300 hover:text-slate-600 hover:bg-slate-50 rounded-full transition-all">
-                            <i class="fa-solid fa-arrow-up-from-bracket text-[13px]"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>`;
-    }).join('');
+        return `
+            <div class="bg-white border border-slate-200 rounded-[32px] overflow-hidden shadow-sm">
+                <div class="p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-3">
+                            <img src="${profile.avatar_url || '/IMG/Logo.jpeg'}" class="w-10 h-10 rounded-full border border-slate-100 object-cover">
+                            <div>
+                                <h4 class="text-xs font-black text-slate-800">${profile.full_name || 'Anonymous'}</h4>
+                                <p class="text-[9px] font-bold text-slate-400">${new Date(post.created_at).toLocaleDateString()}</p>
+                            </div>
+                        </div>
+                        ${isOwner ? `<button onclick="deleteLoaf(${post.id})" class="text-red-500"><i class="fa-solid fa-trash"></i></button>` : ''}
+                    </div>
+                    <p class="text-sm text-slate-700">${post.content}</p>
+                </div>
+            </div>
+        `;
+    }).join('');
 }
-
-// --- SECTION 2: POSTING LOGIC (RESTORED) ---
 
 async function submitLoaf() {
-    const input = document.getElementById('postInput');
-    const content = input?.value?.trim();
-    if (!content) return;
+    const input = document.getElementById('postInput');
+    const content = input?.value?.trim();
+    if (!content) return;
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-        window.showModal("Identity Required", "Log in to post a loaf.", false);
-        return;
-    }
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return alert("Login first");
 
-    const { error } = await supabase.from('posts').insert([{
-        user_id: user.id,
-        content: content,
-        title: "New Loaf",
-        category: "General"
-    }]);
+    const { error } = await supabase.from('posts').insert([{
+        user_id: user.id,
+        content: content,
+        title: "Loaf",
+        category: "General"
+    }]);
 
-    if (error) {
-        window.showModal("Terminal Error", error.message, false);
-    } else {
-        input.value = '';
-        input.style.height = "auto";
-        const postActions = document.getElementById('postActions');
-        if (postActions) postActions.classList.add('hidden');
-        
-        await renderFeed();
-        updateDashboardStats();
-        window.showModal("Transmitted", "Your loaf is live on the grid.", true);
-    }
+    if (error) {
+        console.error(error);
+        alert("Post failed: " + error.message);
+    } else {
+        input.value = '';
+        await renderFeed();
+        alert("Posted!");
+    }
 }
 
-function handlePostInput(el) {
-    const postActions = document.getElementById('postActions');
-    const counter = document.getElementById('charCounter');
-    const maxLength = 500;
 
-    if (el.value.length > maxLength) el.value = el.value.substring(0, maxLength);
-    if (counter) counter.innerText = `${el.value.length} / ${maxLength}`;
-
-    el.style.height = "auto";
-    el.style.height = (el.scrollHeight) + "px";
-
-    if (el.value.trim().length > 0) {
-        postActions?.classList.remove('hidden');
-        postActions?.classList.add('flex');
-    } else {
-        postActions?.classList.add('hidden');
-        postActions?.classList.remove('flex');
-    }
-}
-
-// --- SECTION 3: THEME & MODAL UTILITIES (FIXED FOR December 21st) ---
-
-function toggleLinkedOutModal() {
-    const overlay = document.getElementById('linkedOutModalOverlay');
-    if (!overlay) return;
-
-    if (overlay.classList.contains('hidden')) {
-        overlay.classList.remove('hidden');
-        overlay.classList.add('flex');
-        overlay.style.opacity = '1';
-        document.body.style.overflow = 'hidden';
-    } else {
-        overlay.style.opacity = '0';
-        setTimeout(() => {
-            overlay.classList.add('hidden');
-            overlay.classList.remove('flex');
-            document.body.style.overflow = '';
-        }, 300);
-    }
-}
-
-window.showModal = function(title, message, isSuccess = true) {
-    const modal = document.getElementById('globalModal');
-    if (!modal) return alert(message);
-
-    document.getElementById('modalTitle').textContent = title;
-    document.getElementById('modalBody').textContent = message;
-    document.getElementById('modalEmoji').textContent = isSuccess ? '🛋️' : '⚠️';
-
-    const footer = modal.querySelector('.modal-footer') || modal.querySelector('.bg-white');
-    
-    // Ensure button is there and functional
-    let dismissBtn = document.getElementById('modalDismissBtn');
-    if (!dismissBtn) {
-        dismissBtn = document.createElement('button');
-        dismissBtn.id = 'modalDismissBtn';
-        dismissBtn.className = "w-full mt-8 py-5 bg-slate-900 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl hover:bg-slate-800 transition-all";
-        dismissBtn.innerText = "Dismiss Signal";
-        dismissBtn.onclick = closeModal;
-        footer.appendChild(dismissBtn);
-    }
-
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
-    document.body.style.overflow = 'hidden';
+window.deleteLoaf = async function(id) {
+    // Show custom yes/no modal
+    showDeleteConfirmModal(id);
 };
 
-function closeModal() {
-    const modal = document.getElementById('globalModal');
-    if (modal) {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-    }
-    document.body.style.overflow = '';
+// New function: shows centered yes/no modal
+function showDeleteConfirmModal(postId) {
+    const modal = document.getElementById('globalModal');
+    if (!modal) {
+        if (confirm("Delete this loaf forever?")) {
+            performDelete(postId);
+        }
+        return;
+    }
+
+    // Customize modal for delete confirmation
+    document.getElementById('modalTitle').textContent = "Delete Loaf";
+    document.getElementById('modalBody').innerHTML = `
+        Are you sure you want to delete this loaf?<br>
+        <small>This action cannot be undone.</small>
+    `;
+    document.getElementById('modalEmoji').textContent = '🗑️';
+
+    // Replace the single "Understood" button with Yes/No
+    const buttonContainer = document.querySelector('#globalModal button')?.parentElement;
+    if (buttonContainer) {
+        buttonContainer.innerHTML = `
+            <div class="flex flex-col gap-3 w-full mt-2">
+        <button onclick="performDelete(${postId}); closeModal()" 
+            class="w-full py-5 bg-red-600 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl 
+            hover:bg-red-700 hover:shadow-lg hover:shadow-red-200 active:scale-95 transition-all duration-200">
+            Confirm Deletion
+        </button>
+
+        <button onclick="closeModal()" 
+            class="w-full py-5 bg-slate-50 text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl 
+            hover:bg-slate-100 hover:text-slate-600 active:scale-95 transition-all duration-200">
+            Keep this Loaf
+        </button>
+    </div>
+        `;
+    }
+
+    // Show the modal
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    document.body.style.overflow = 'hidden';
 }
 
-function checkSavedTheme() {
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark') {
-        document.documentElement.classList.add('dark');
-        updateThemeIcon(true);
-    }
+// The actual delete logic
+async function performDelete(id) {
+    const { error } = await supabase
+        .from('posts')
+        .delete()
+        .eq('id', id);
+
+    if (error) {
+        console.error("Delete failed:", error);
+        window.showModal?.("Error", "Could not delete: " + error.message, false);
+    } else {
+        await renderFeed();
+        window.showModal?.("Deleted", "Loaf removed successfully.", true);
+
+    }
 }
 
-function toggleDarkMode() {
-    const isDark = document.documentElement.classList.toggle('dark');
-    localStorage.setItem('theme', isDark ? 'dark' : 'light');
-    updateThemeIcon(isDark);
-}
+// --- 3. UI, THEME & STATS ---
+function handlePostInput(el) {
+    const postActions = document.getElementById('postActions');
+    const counter = document.getElementById('charCounter');
+    const maxLength = 500;
 
-function updateThemeIcon(isDark) {
-    const icon = document.getElementById('themeIcon');
-    if (!icon) return;
-    if (isDark) {
-        icon.classList.replace('fa-moon', 'fa-sun');
-        icon.classList.add('text-amber-400');
-    } else {
-        icon.classList.replace('fa-sun', 'fa-moon');
-        icon.classList.remove('text-amber-400');
-    }
-}
+    if (el.value.length > maxLength) el.value = el.value.substring(0, maxLength);
+    if (counter) counter.innerText = `${el.value.length} / ${maxLength}`;
+    el.style.height = "auto";
+    el.style.height = (el.scrollHeight) + "px";
 
-// --- SECTION 4: IDENTITY SYNC & PROMOTIONS (FULL) ---
-
-async function syncIdentity(userId) {
-    const { data: profile } = await supabase.from('profiles').select('*').eq('id', userId).single();
-    if (!profile) return;
-
-    const freshUrl = `${profile.avatar_url}?t=${Date.now()}`;
-    const selectors = ['dashPfpNav', 'dashPfp', 'dashPfpLarge', 'sidebarPfp'];
-    selectors.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.src = freshUrl;
-    });
-
-    const nameEls = document.querySelectorAll('.user-full-name');
-    nameEls.forEach(el => el.innerText = profile.full_name || 'User');
-
-    const { count: followers } = await supabase.from('follows').select('*', { count: 'exact', head: true }).eq('following_id', userId);
-    const followEl = document.getElementById('followerCount');
-    if (followEl) followEl.innerText = followers || 0;
-}
-
-async function checkPromotion(userId) {
-    const { data: tierData } = await supabase.from('user_tiers').select('*').eq('id', userId).single();
-    if (!tierData) return;
-
-    const milestones = { 11: 'Tier 2', 21: 'Tier 3', 41: 'Unverified' };
-    if (milestones[tierData.days_old]) {
-        showPromotionModal(milestones[tierData.days_old]);
-    }
-}
-
-function showPromotionModal(tierName) {
-    const promo = document.createElement('div');
-    promo.className = "fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/80 backdrop-blur-md p-6";
-    promo.innerHTML = `
-        <div class="bg-white p-10 rounded-[50px] shadow-2xl text-center max-w-sm">
-            <div class="w-20 h-20 bg-cyan-500/10 text-cyan-500 rounded-full flex items-center justify-center mx-auto mb-6">
-                <i class="fa-solid fa-ranking-star text-3xl"></i>
-            </div>
-            <h2 class="text-xs font-black uppercase tracking-[0.3em] mb-4">Rank Evolution</h2>
-            <p class="text-[11px] text-slate-500 font-bold uppercase leading-relaxed mb-8">You have been promoted to <span class="text-cyan-600">${tierName}</span> based on your activity.</p>
-            <button onclick="this.parentElement.parentElement.remove()" class="w-full py-5 bg-cyan-600 text-white rounded-[24px] text-[10px] font-black uppercase">Accept Status</button>
-        </div>`;
-    document.body.appendChild(promo);
-}
-
-// --- SECTION 5: SIDEBAR, COMMUNITIES & RECS ---
-
-function syncSidebarCommunities() {
-    const communityList = JSON.parse(localStorage.getItem('userCommunities')) || [];
-    const container = document.getElementById('sidebarCommList');
-    if (!container) return;
-
-    container.innerHTML = communityList.slice(0, 5).map(comm => `
-        <div class="flex items-center justify-between p-3 rounded-[24px] hover:bg-slate-50 transition-all cursor-pointer group">
-            <div class="flex items-center gap-3" onclick="window.location.href='/PAGES/open_comms.html?id=${comm.id}'">
-                <img src="${comm.image || '/IMG/Logo.jpeg'}" class="w-10 h-10 rounded-2xl object-cover">
-                <h4 class="text-[10px] font-black text-slate-800 uppercase truncate max-w-[90px]">${comm.name}</h4>
-            </div>
-            <i class="fa-solid fa-chevron-right text-[8px] text-slate-200 group-hover:text-slate-400"></i>
-        </div>`).join('');
-}
-
-async function loadRecommendations() {
-    const list = document.getElementById('recommendationList');
-    if (!list) return;
-
-    const { data: recs } = await supabase.from('profiles').select('id, full_name, avatar_url, role').limit(3);
-    if (!recs) return;
-
-    list.innerHTML = recs.map(rec => `
-        <div class="flex items-center justify-between group">
-            <div class="flex items-center gap-4 cursor-pointer" onclick="window.location.href='/PAGES/view-profile.html?id=${rec.id}'">
-                <img src="${rec.avatar_url || '/IMG/Logo.jpeg'}" class="w-12 h-12 rounded-[22px] border border-slate-50 object-cover">
-                <div>
-                    <h4 class="text-[10px] font-black text-slate-800 uppercase tracking-tighter">${rec.full_name}</h4>
-                    <p class="text-[8px] font-bold text-slate-400 uppercase">${rec.role || 'Loafer'}</p>
-                </div>
-            </div>
-            <button class="w-9 h-9 rounded-full bg-slate-900 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all">
-                <i class="fa-solid fa-plus text-[10px]"></i>
-            </button>
-        </div>`).join('');
+    if (el.value.trim().length > 0) {
+        postActions?.classList.remove('hidden');
+        postActions?.classList.add('flex');
+    } else {
+        postActions?.classList.add('hidden');
+        postActions?.classList.remove('flex');
+    }
 }
 
 async function updateDashboardStats() {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    const { count } = await supabase.from('posts').select('*', { count: 'exact', head: true }).eq('user_id', user.id);
-    const countEl = document.getElementById('appCount');
-    if (countEl) countEl.innerText = count || 0;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { count } = await supabase
+        .from('posts')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id);
+
+    const appCountElement = document.getElementById('appCount');
+    if (appCountElement) appCountElement.innerText = count || 0;
 }
 
-// --- SECTION 6: INTERACTION HANDLERS ---
-
-async function handleLike(postId, btn, alreadyLiked) {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    if (alreadyLiked) {
-        await supabase.from('likes').delete().eq('post_id', postId).eq('user_id', user.id);
-    } else {
-        await supabase.from('likes').insert([{ post_id: postId, user_id: user.id }]);
-    }
-    renderFeed();
+function toggleDarkMode() {
+    const isDark = document.documentElement.classList.toggle('dark');
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    updateThemeIcon(isDark);
+    window.showModal?.('Theme Switched', `System is now in ${isDark ? "Night Shift" : "Daylight"} mode.`);
 }
 
-async function handleRepost(postId, alreadyReposted) {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user || alreadyReposted) return;
-
-    await supabase.from('reposts').insert([{ post_id: postId, user_id: user.id }]);
-    window.showModal("Success", "Loaf added to your timeline.", true);
-    renderFeed();
+function checkSavedTheme() {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark') {
+        document.documentElement.classList.add('dark');
+        updateThemeIcon(true);
+    }
 }
 
-function handleShare(postId) {
-    const url = `${window.location.origin}/PAGES/post.html?id=${postId}`;
-    navigator.clipboard.writeText(url);
-    window.showModal("Terminal", "Post link copied to system clipboard.", true);
+function updateThemeIcon(isDark) {
+    const icon = document.getElementById('themeIcon');
+    if (!icon) return;
+    if (isDark) {
+        icon.classList.replace('fa-moon', 'fa-sun');
+        icon.classList.add('text-amber-400');
+    } else {
+        icon.classList.replace('fa-sun', 'fa-moon');
+        icon.classList.remove('text-amber-400');
+    }
 }
 
-// --- SECTION 7: DELETION ENGINE ---
+// --- 4. COMMUNITIES ---
+function syncSidebarCommunities() {
+    const communityList = JSON.parse(localStorage.getItem('userCommunities')) || [];
+    const sidebarCard = document.getElementById('myCommunitiesCard');
+    if (!sidebarCard) return;
 
-window.deleteLoaf = function(id) {
-    showDeleteConfirmModal(id);
+    let listWrapper = document.getElementById('sidebarCommList');
+    if (!listWrapper) {
+        listWrapper = document.createElement('div');
+        listWrapper.id = 'sidebarCommList';
+        listWrapper.className = 'space-y-3 mb-4';
+        sidebarCard.querySelector('.flex.justify-between').insertAdjacentElement('afterend', listWrapper);
+    }
+
+    listWrapper.innerHTML = communityList.slice(0, 3).map(comm => `
+        <div class="flex items-center justify-between p-2 rounded-2xl hover:bg-slate-50 transition-all border border-transparent hover:border-slate-100">
+            <div class="flex items-center gap-3">
+                <img src="${comm.image || '/IMG/Logo.jpeg'}" class="w-10 h-10 rounded-xl object-cover">
+                <h4 class="text-[10px] font-black text-slate-800 uppercase truncate max-w-[80px]">${comm.name}</h4>
+            </div>
+            <button onclick="window.location.href='/PAGES/open_comms.html?id=${comm.id}'" class="bg-slate-50 text-slate-800 px-3 py-1.5 rounded-xl text-[8px] font-black uppercase">Open</button>
+        </div>
+    `).join('');
+}
+
+function toggleLinkedOutModal() {
+  const overlay = document.getElementById('linkedOutModalOverlay');
+  if (!overlay) {
+    console.error("Overlay not found");
+    return;
+  }
+
+  if (overlay.classList.contains('hidden')) {
+    // Open - exact steps from your working console test
+    overlay.classList.remove('hidden');
+    overlay.classList.add('flex');
+    overlay.style.opacity = '1';
+
+    const content = document.getElementById('linkedOutDropdown');
+    if (content) {
+      content.classList.remove('scale-95', 'opacity-0');
+      content.classList.add('scale-100', 'opacity-100');
+    }
+
+    document.body.style.overflow = 'hidden';
+  } else {
+    // Close
+    overlay.style.opacity = '0';
+
+    const content = document.getElementById('linkedOutDropdown');
+    if (content) {
+      content.classList.remove('scale-100', 'opacity-100');
+      content.classList.add('scale-95', 'opacity-0');
+    }
+
+    // Hide after fade (simple delay)
+    setTimeout(() => {
+      overlay.classList.add('hidden');
+      overlay.classList.remove('flex');
+      document.body.style.overflow = '';
+    }, 300);
+  }
+
+  console.log("Modal toggle called - current hidden:", overlay.classList.contains('hidden'));
+}
+window.showModal = function(title, message, isSuccess = true) {
+    const modal = document.getElementById('globalModal');
+    if (!modal) return alert(message); // fallback
+
+    document.getElementById('modalTitle').textContent = title;
+    document.getElementById('modalBody').textContent = message;
+    document.getElementById('modalEmoji').textContent = isSuccess ? '🛋️' : '⚠️';
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    document.body.style.overflow = 'hidden';
 };
 
-function showDeleteConfirmModal(postId) {
-    const modal = document.getElementById('globalModal');
-    if (!modal) return;
+function closeModal() {
+    const modal = document.getElementById('globalModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    document.body.style.overflow = '';
+}
+async function loadRecommendations() {
+    const listContainer = document.getElementById('recommendationList');
+    if (!listContainer) return;
 
-    document.getElementById('modalTitle').textContent = "Delete Loaf";
-    document.getElementById('modalBody').innerHTML = `This transmission will be permanently erased from the LinkedOut grid.`;
-    document.getElementById('modalEmoji').textContent = '🗑️';
+    // 1. Fetch profiles (limiting to 5 for the sidebar)
+    const { data: profiles, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, avatar_url, role')
+        .limit(5);
 
-    const footer = modal.querySelector('.modal-footer') || modal.querySelector('.bg-white');
-    footer.innerHTML = `
-        <div class="flex flex-col gap-3 w-full mt-4">
-            <button onclick="performDelete(${postId}); closeModal()" class="w-full py-5 bg-red-600 text-white text-[10px] font-black uppercase rounded-2xl">Confirm Erase</button>
-            <button onclick="closeModal()" class="w-full py-5 bg-slate-50 text-slate-400 text-[10px] font-black uppercase rounded-2xl">Cancel</button>
-        </div>`;
+    if (error) {
+        console.error("Recs Error:", error);
+        return;
+    }
 
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
+    // 2. Clear loading state
+    listContainer.innerHTML = '';
+
+    // 3. Render each user
+    profiles.forEach(profile => {
+        const userCard = document.createElement('div');
+        userCard.className = "flex items-center justify-between group cursor-pointer";
+        
+        userCard.innerHTML = `
+            <div class="flex items-center gap-4" onclick="window.location.href='/PAGES/view-profile.html?id=${profile.id}'">
+                <div class="relative">
+                    <img src="${profile.avatar_url || '/IMG/Logo.jpeg'}" 
+                         class="w-12 h-12 rounded-2xl object-cover border-2 border-transparent group-hover:border-cyan-500 transition-all">
+                </div>
+                <div>
+                    <h4 class="text-xs font-black text-slate-800 uppercase tracking-tighter">${profile.full_name || 'Anonymous'}</h4>
+                    <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">${profile.role || 'Loafer'}</p>
+                </div>
+            </div>
+            <button onclick="followUser('${profile.id}')" 
+                class="w-8 h-8 rounded-full border border-slate-100 flex items-center justify-center text-slate-400 hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all">
+                <i class="fa-solid fa-plus text-[10px]"></i>
+            </button>
+        `;
+        listContainer.appendChild(userCard);
+    });
 }
 
-async function performDelete(id) {
-    const { error } = await supabase.from('posts').delete().eq('id', id);
-    if (!error) {
-        await renderFeed();
-        updateDashboardStats();
-    }
+// Run on load
+document.addEventListener('DOMContentLoaded', loadRecommendations);
+/**
+ * LINKEDOUT GLOBAL IDENTITY SYNC
+ * Covers: Nav (w-9), Start-a-Loaf (w-12), and Sidebar (w-16)
+ */
+
+document.addEventListener('DOMContentLoaded', async () => {
+    // Safety check for supabase initialization
+    if (typeof supabase === 'undefined') {
+        console.error("Supabase not loaded. Check script order in HTML.");
+        return;
+    }
+    await syncAllDashboardImages();
+    setupRealtimeSync();
+});
+
+async function syncAllDashboardImages() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return window.location.href = '/SCRIPTS/auth.js';
+
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('avatar_url, full_name')
+        .eq('id', user.id)
+        .single();
+
+    if (profile && profile.avatar_url) {
+        const freshUrl = `${profile.avatar_url}?t=${Date.now()}`;
+        
+        // List of every PFP ID we want to update
+        const pfpIds = ['dashPfpNav', 'dashPfp', 'dashPfpLarge'];
+
+        pfpIds.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.src = freshUrl;
+        });
+
+        // Update the name display if it exists
+        const nameEl = document.getElementById('dashName');
+        if (nameEl) nameEl.innerText = profile.full_name;
+    }
 }
+
+function setupRealtimeSync() {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+        if (!user) return;
+
+        supabase
+            .channel('global_pfp_sync')
+            .on('postgres_changes', { 
+                event: 'UPDATE', 
+                schema: 'public', 
+                table: 'profiles',
+                filter: `id=eq.${user.id}` // Only listen to YOUR changes
+            }, (payload) => {
+                const freshUrl = `${payload.new.avatar_url}?t=${Date.now()}`;
+                
+                // Update every PFP instance immediately without refresh
+                ['dashPfpNav', 'dashPfp', 'dashPfpLarge'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.src = freshUrl;
+                });
+            })
+            .subscribe();
+    });
+}
+document.addEventListener('DOMContentLoaded', async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    syncIdentity(user.id);
+    checkPromotion(user.id);
+});
+
+async function syncIdentity(userId) {
+    const { data: profile } = await supabase.from('profiles').select('*').eq('id', userId).single();
+    if (!profile) return;
+
+    const freshUrl = `${profile.avatar_url}?t=${Date.now()}`;
+    ['dashPfpNav', 'dashPfp', 'dashPfpLarge'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.src = freshUrl;
+    });
+
+    // Update Follower Stats
+    const { count } = await supabase.from('follows').select('*', { count: 'exact', head: true }).eq('following_id', userId);
+    if (document.getElementById('followerCount')) document.getElementById('followerCount').innerText = count || 0;
+}
+
+async function checkPromotion(userId) {
+    const { data: tierData } = await supabase.from('user_tiers').select('*').eq('id', userId).single();
+    
+    // Check if current days_old triggers a message (e.g., exactly 11, 21, or 31)
+    const milestones = { 11: 'Tier 2', 21: 'Tier 3', 41: 'Unverified' };
+    
+    if (milestones[tierData.days_old]) {
+        showPromotionModal(milestones[tierData.days_old]);
+    }
+}
+
+function showPromotionModal(tierName) {
+    const modal = document.createElement('div');
+    modal.className = "fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-6";
+    modal.innerHTML = `
+        <div class="bg-white dark:bg-slate-900 p-8 rounded-[40px] shadow-2xl text-center max-w-xs animate-in zoom-in duration-300">
+            <div class="w-16 h-16 bg-cyan-500/10 text-cyan-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fa-solid fa-bolt text-2xl"></i>
+            </div>
+            <h3 class="text-xs font-black uppercase tracking-widest dark:text-white">Promotion Detected</h3>
+            <p class="text-[10px] text-slate-500 mt-2 mb-6">Your loyalty has earned you a spot in <span class="text-cyan-500 font-bold">${tierName}</span>.</p>
+            <button onclick="this.parentElement.parentElement.remove()" class="w-full py-3 bg-cyan-500 text-white rounded-2xl text-[10px] font-black uppercase">Dismiss Signal</button>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+
+async function incrementPostView(postId) {
+    // We use a Remote Procedure Call (RPC) to be thread-safe
+    const { error } = await supabase.rpc('increment_post_views', { target_post_id: postId });
+    
+    if (error) console.error("View Count Error:", error.message);
+}
+ 
