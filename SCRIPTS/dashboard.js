@@ -176,50 +176,63 @@ async function renderFeed() {
     const isReposted = post.reposts?.some(r => r.user_id === currentUserId);
 
     // 3. Combined Template
-    return `
-        <div class="bg-white border border-slate-200 rounded-[32px] overflow-hidden shadow-sm mb-4">
-            <div class="p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="flex items-center gap-3 cursor-pointer" onclick="window.location.href='/PAGES/view-profile.html?id=${post.user_id}'">
-                        <img src="${profile.avatar_url || '/IMG/Logo.jpeg'}" class="w-10 h-10 rounded-full border border-slate-100 object-cover">
-                        <div>
-                            <h4 class="text-xs font-black text-slate-800 uppercase tracking-tight">${profile.full_name || 'Anonymous'}</h4>
-                            <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">${new Date(post.created_at).toLocaleDateString()}</p>
+   return `
+            <div class="bg-white border border-slate-200 rounded-[40px] overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 group">
+                <div class="p-8">
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center gap-4 cursor-pointer" onclick="window.location.href='/PAGES/view-profile.html?id=${post.user_id}'">
+                            <div class="relative">
+                                <img src="${profile.avatar_url || '/IMG/Logo.jpeg'}" class="w-12 h-12 rounded-[20px] border-2 border-slate-50 object-cover shadow-sm">
+                                <div class="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></div>
+                            </div>
+                            <div>
+                                <h4 class="text-[11px] font-black text-slate-800 uppercase tracking-tight">${profile.full_name || 'Anonymous'}</h4>
+                                <p class="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em]">${postDate}</p>
+                            </div>
                         </div>
+                        
+                        ${isOwner ? `
+                            <button onclick="deleteLoaf(${post.id})" class="w-10 h-10 flex items-center justify-center rounded-2xl text-slate-200 hover:bg-red-50 hover:text-red-500 transition-all">
+                                <i class="fa-solid fa-trash-can text-xs"></i>
+                            </button>
+                        ` : `
+                            <button class="text-slate-200 hover:text-slate-400"><i class="fa-solid fa-ellipsis"></i></button>
+                        `}
                     </div>
-                    ${isOwner ? `
-                        <button onclick="deleteLoaf(${post.id})" class="text-red-400 hover:text-red-600 transition-colors">
-                            <i class="fa-solid fa-trash text-xs"></i>
+
+                    <p class="text-[13px] text-slate-600 leading-[1.8] font-medium mb-8">${post.content}</p>
+
+                    <div class="flex items-center justify-between pt-6 border-t border-slate-50">
+                        <div class="flex items-center gap-8">
+                            <button onclick="handleLike(${post.id}, this, ${isLiked})" class="flex items-center gap-2.5 ${isLiked ? 'text-pink-500' : 'text-slate-400'} group/btn transition-all">
+                                <div class="w-9 h-9 rounded-full flex items-center justify-center group-hover/btn:bg-pink-50 transition-colors">
+                                    <i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart text-[14px]"></i>
+                                </div>
+                                <span class="text-[11px] font-black">${post.likes?.length || 0}</span>
+                            </button>
+
+                            <button onclick="window.location.href='/PAGES/post.html?id=${post.id}'" class="flex items-center gap-2.5 text-slate-400 group/btn transition-all">
+                                <div class="w-9 h-9 rounded-full flex items-center justify-center group-hover/btn:bg-cyan-50 transition-colors">
+                                    <i class="fa-regular fa-comment text-[14px]"></i>
+                                </div>
+                                <span class="text-[11px] font-black uppercase tracking-widest">${post.comments?.length || 0}</span>
+                            </button>
+
+                            <button onclick="handleRepost(${post.id}, ${isReposted})" class="flex items-center gap-2.5 ${isReposted ? 'text-green-500' : 'text-slate-400'} group/btn transition-all">
+                                <div class="w-9 h-9 rounded-full flex items-center justify-center group-hover/btn:bg-green-50 transition-colors">
+                                    <i class="fa-solid fa-retweet text-[14px]"></i>
+                                </div>
+                                <span class="text-[11px] font-black uppercase tracking-widest">${post.reposts?.length || 0}</span>
+                            </button>
+                        </div>
+
+                        <button onclick="handleShare(${post.id})" class="w-9 h-9 flex items-center justify-center text-slate-300 hover:text-slate-600 hover:bg-slate-50 rounded-full transition-all">
+                            <i class="fa-solid fa-arrow-up-from-bracket text-[13px]"></i>
                         </button>
-                    ` : ''}
+                    </div>
                 </div>
-
-                <p class="text-sm text-slate-700 leading-relaxed mb-6">${post.content}</p>
-
-                <div class="flex items-center gap-6 pt-4 border-t border-slate-50">
-                    <button onclick="handleLike(${post.id}, this, ${isLiked})" class="flex items-center gap-2 ${isLiked ? 'text-pink-500' : 'text-slate-400'} transition-colors">
-                        <i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart text-xs"></i>
-                        <span class="text-[10px] font-black">${post.likes?.length || 0}</span>
-                    </button>
-
-                    <button onclick="openComments(${post.id})" class="flex items-center gap-2 text-slate-400 hover:text-cyan-500 transition-colors">
-                        <i class="fa-regular fa-comment text-xs"></i>
-                        <span class="text-[10px] font-black uppercase">Reply</span>
-                    </button>
-
-                    <button onclick="handleRepost(${post.id}, ${isReposted})" class="flex items-center gap-2 ${isReposted ? 'text-green-500' : 'text-slate-400'} transition-colors">
-                        <i class="fa-solid fa-retweet text-xs"></i>
-                        <span class="text-[10px] font-black">${post.reposts?.length || 0}</span>
-                    </button>
-
-                    <button onclick="handleShare(${post.id})" class="text-slate-300 ml-auto hover:text-slate-600 transition-colors">
-                        <i class="fa-solid fa-arrow-up-from-bracket text-xs"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
-    `;
-}).join('');
+            </div>`;
+    }).join('');
 }
 
 async function submitLoaf() {
