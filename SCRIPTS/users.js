@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     checkInitialFollowStatus(userId);
 });
 
-// --- BACKGROUND NOTIFICATION (Non-blocking) ---
+// --- BACKGROUND NOTIFICATION ---
 async function createFollowNotification(myId, theirId) {
     try {
         const { data: myProfile } = await supabase.from('profiles').select('full_name').eq('id', myId).single();
@@ -51,24 +51,36 @@ async function loadUserProfile(userId) {
         document.getElementById('userRole').innerText = profile.role || 'Professional Loafer';
         document.getElementById('userAvatar').src = profile.avatar_url || '/IMG/Logo.jpeg';
 
+        // Load both Followers and Following counts
         await loadProfileStats(userId);
     } catch (err) {
         console.error("Profile Load Error:", err.message);
     }
 }
 
-// --- STATS REFRESH ---
+// --- STATS REFRESH (Fixed for both Followers & Following) ---
 async function loadProfileStats(userId) {
+    // 1. Get Followers (People following THIS user)
     const { count: followers } = await supabase
         .from('follows')
         .select('*', { count: 'exact', head: true })
         .eq('following_id', userId);
 
+    // 2. Get Following (People THIS user follows)
+    const { count: following } = await supabase
+        .from('follows')
+        .select('*', { count: 'exact', head: true })
+        .eq('follower_id', userId);
+
+    // Update UI Elements
     const followerEl = document.getElementById('statFollowers');
+    const followingEl = document.getElementById('statFollowing');
+
     if (followerEl) followerEl.innerText = followers || 0;
+    if (followingEl) followingEl.innerText = following || 0;
 }
 
-// --- FOLLOW ACTION (Optimized for Speed) ---
+// --- FOLLOW ACTION ---
 async function handleFollowAction() {
     const { data: { user: currentUser } } = await supabase.auth.getUser();
     const params = new URLSearchParams(window.location.search);
@@ -77,7 +89,6 @@ async function handleFollowAction() {
     if (!currentUser) return showModalAlert("LOG IN TO FOLLOW THIS LOAFER");
     if (currentUser.id === targetUserId) return showModalAlert("YOU CANNOT FOLLOW YOURSELF");
 
-    // Check current state
     const { data: existingFollow } = await supabase
         .from('follows')
         .select('*')
@@ -86,10 +97,7 @@ async function handleFollowAction() {
         .single();
 
     if (existingFollow) {
-        // 1. Update UI Instantly
         updateFollowButtonUI(false);
-        
-        // 2. Perform DB action
         const { error } = await supabase
             .from('follows')
             .delete()
@@ -97,29 +105,26 @@ async function handleFollowAction() {
             .eq('following_id', targetUserId);
 
         if (error) {
-            updateFollowButtonUI(true); // Revert on error
+            updateFollowButtonUI(true);
             showModalAlert("ACTION FAILED");
         } else {
             showModalAlert("UNFOLLOWED");
+            // Refresh counts for the profile owner
             loadProfileStats(targetUserId); 
         }
     } else {
-        // 1. Update UI Instantly
         updateFollowButtonUI(true);
-        
-        // 2. Perform DB action
         const { error } = await supabase
             .from('follows')
             .insert([{ follower_id: currentUser.id, following_id: targetUserId }]);
 
         if (error) {
-            updateFollowButtonUI(false); // Revert on error
+            updateFollowButtonUI(false);
             showModalAlert("FOLLOW FAILED");
         } else {
             showModalAlert("FOLLOWED SUCCESSFULLY");
+            // Refresh counts for the profile owner
             loadProfileStats(targetUserId);
-            
-            // 3. Fire-and-forget notification (No 'await' so it doesn't lag the UI)
             createFollowNotification(currentUser.id, targetUserId);
         }
     }
