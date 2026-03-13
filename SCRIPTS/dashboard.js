@@ -36,25 +36,31 @@ async function renderFeed() {
     const { data: { user } } = await supabase.auth.getUser();
     const currentUserId = user ? user.id : null;
 
-    const { data: posts, error } = await supabase
-  .from('posts')
-  .select(`
-    *,
-    profiles!posts_user_id_fkey (
-      full_name,
-      avatar_url
-    )
-  `)
-  .order('created_at', { ascending: false });
+   const { data: posts, error } = await supabase
+    .from('posts')
+    .select(`
+      *,
+      profiles!posts_user_id_fkey (
+        full_name,
+        avatar_url
+      )
+    `)
+    .order('created_at', { ascending: false });
 
-    if (error) {
-        console.error("Feed Fetch Error:", error);
-        if (placeholder) {
-            placeholder.innerHTML = `<p class="text-red-500 text-center py-8">Feed temporarily unavailable.<br>Try refreshing page.</p>`;
-            placeholder.style.display = 'block';
-        }
-        return;
+  if (error) {
+    console.error("Full error:", error);
+    // Show better message
+    if (placeholder) {
+      placeholder.innerHTML = `<p class="text-red-500 text-center py-8">
+        Feed load failed.<br>
+        Error: ${error.message || 'Unknown'}<br>
+        (Code: ${error.code || 'N/A'})<br>
+        Try refreshing or check console.
+      </p>`;
+      placeholder.style.display = 'block';
     }
+    return;
+  }
 
     if (posts && posts.length > 0) {
         if (placeholder) placeholder.style.display = 'none';
