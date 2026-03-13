@@ -12,181 +12,165 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 async function renderFeed() {
-    const feedContainer = document.getElementById('mainFeed');
-    const placeholder = document.getElementById('feedPlaceholder');
-    if (!feedContainer) return;
+    const feedContainer = document.getElementById('mainFeed');
+    const placeholder = document.getElementById('feedPlaceholder');
+    if (!feedContainer) return;
 
-    const { data: { user } } = await supabase.auth.getUser();
-    const currentUserId = user ? user.id : null;
+    const { data: { user } } = await supabase.auth.getUser();
+    const currentUserId = user ? user.id : null;
 
-    // Simple fetch - no join, no error
-    const { data: posts, error } = await supabase
-        .from('posts')
-        .select('*')
-        .order('created_at', { ascending: false });
+    // Simple fetch - no join, no error
+    const { data: posts, error } = await supabase
+        .from('posts')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-    if (error) {
-        console.error("Feed error:", error);
-        if (placeholder) {
-            placeholder.innerHTML = '<p class="text-red-500 text-center py-8">Feed error: ' + (error.message || 'Unknown') + '</p>';
-            placeholder.style.display = 'block';
-        }
-        return;
-    }
+    if (error) {
+        console.error("Feed error:", error);
+        if (placeholder) {
+            placeholder.innerHTML = '<p class="text-red-500 text-center py-8">Feed error: ' + (error.message || 'Unknown') + '</p>';
+            placeholder.style.display = 'block';
+        }
+        return;
+    }
 
-    if (!posts || posts.length === 0) {
-        if (placeholder) {
-            placeholder.innerHTML = '<p class="text-slate-500 text-center py-8">No loafs yet. Be the first!</p>';
-            placeholder.style.display = 'block';
-        }
-        return;
-    }
+    if (!posts || posts.length === 0) {
+        if (placeholder) {
+            placeholder.innerHTML = '<p class="text-slate-500 text-center py-8">No loafs yet. Be the first!</p>';
+            placeholder.style.display = 'block';
+        }
+        return;
+    }
 
-    if (placeholder) placeholder.style.display = 'none';
+    if (placeholder) placeholder.style.display = 'none';
 
-    let postWrapper = document.getElementById('postWrapper');
-    if (!postWrapper) {
-        postWrapper = document.createElement('div');
-        postWrapper.id = 'postWrapper';
-        postWrapper.className = 'space-y-4';
-        feedContainer.appendChild(postWrapper);
-    }
+    let postWrapper = document.getElementById('postWrapper');
+    if (!postWrapper) {
+        postWrapper = document.createElement('div');
+        postWrapper.id = 'postWrapper';
+        postWrapper.className = 'space-y-4';
+        feedContainer.appendChild(postWrapper);
+    }
 
-    // Get profiles separately
-    const userIds = [...new Set(posts.map(p => p.user_id))];
-    const { data: profilesData } = await supabase
-        .from('profiles')
-        .select('id, full_name, avatar_url')
-        .in('id', userIds);
+    // Get profiles separately
+    const userIds = [...new Set(posts.map(p => p.user_id))];
+    const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('id, full_name, avatar_url')
+        .in('id', userIds);
 
-    const profileMap = {};
-    profilesData?.forEach(p => profileMap[p.id] = p);
+    const profileMap = {};
+    profilesData?.forEach(p => profileMap[p.id] = p);
 
-    postWrapper.innerHTML = posts.map(post => {
-        const profile = profileMap[post.user_id] || {};
-        const isOwner = currentUserId === post.user_id;
+    postWrapper.innerHTML = posts.map(post => {
+        const profile = profileMap[post.user_id] || {};
+        const isOwner = currentUserId === post.user_id;
 
-        return `
-            <div class="bg-white border border-slate-200 rounded-[32px] overflow-hidden shadow-sm">
-                <div class="p-6">
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="flex items-center gap-3">
-                            <img src="${profile.avatar_url || '/IMG/Logo.jpeg'}" class="w-10 h-10 rounded-full border border-slate-100 object-cover">
-                            <div>
-                                <h4 class="text-xs font-black text-slate-800">${profile.full_name || 'Anonymous'}</h4>
-                                <p class="text-[9px] font-bold text-slate-400">${new Date(post.created_at).toLocaleDateString()}</p>
-                            </div>
-                        </div>
-                        ${isOwner ? `<button onclick="deleteLoaf(${post.id})" class="text-red-500"><i class="fa-solid fa-trash"></i></button>` : ''}
-                    </div>
-                    <p class="text-sm text-slate-700">${post.content}</p>
-                </div>
-            </div>
-        `;
-    }).join('');
+        return `
+            <div class="bg-white border border-slate-200 rounded-[32px] overflow-hidden shadow-sm">
+                <div class="p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-3">
+                            <img src="${profile.avatar_url || '/IMG/Logo.jpeg'}" class="w-10 h-10 rounded-full border border-slate-100 object-cover">
+                            <div>
+                                <h4 class="text-xs font-black text-slate-800">${profile.full_name || 'Anonymous'}</h4>
+                                <p class="text-[9px] font-bold text-slate-400">${new Date(post.created_at).toLocaleDateString()}</p>
+                            </div>
+                        </div>
+                        ${isOwner ? `<button onclick="deleteLoaf(${post.id})" class="text-red-500"><i class="fa-solid fa-trash"></i></button>` : ''}
+                    </div>
+                    <p class="text-sm text-slate-700">${post.content}</p>
+                </div>
+            </div>
+        `;
+    }).join('');
 }
 
 async function submitLoaf() {
-    const input = document.getElementById('postInput');
-    const btn = document.querySelector('button[onclick="submitLoaf()"]');
-    const content = input?.value?.trim();
-    if (!content) return;
+    const input = document.getElementById('postInput');
+    const content = input?.value?.trim();
+    if (!content) return;
 
-    // Loading State
-    const originalText = btn.innerHTML;
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return alert("Login first");
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return alert("Login first");
+    const { error } = await supabase.from('posts').insert([{
+        user_id: user.id,
+        content: content,
+        title: "Loaf",
+        category: "General"
+    }]);
 
-    const { error } = await supabase.from('posts').insert([{
-        user_id: user.id,
-        content: content,
-        title: "Loaf",
-        category: "General"
-    }]);
-
-    btn.disabled = false;
-    btn.innerHTML = originalText;
-
-    if (error) {
-        console.error(error);
-        window.showModal?.("Error", error.message, false);
-    } else {
-        input.value = '';
-        // Note: 'renderFeed()' is no longer needed here because Realtime handles it!
-    }
+    if (error) {
+        console.error(error);
+        alert("Post failed: " + error.message);
+    } else {
+        input.value = '';
+        await renderFeed();
+        alert("Posted!");
+    }
 }
 
+
+window.deleteLoaf = async function(id) {
+    // Show custom yes/no modal
+    showDeleteConfirmModal(id);
+};
+
+// New function: shows centered yes/no modal
 function showDeleteConfirmModal(postId) {
-    let modal = document.getElementById('premiumDeleteModal');
-    if (!modal) {
-        modal = document.createElement('div');
-        modal.id = 'premiumDeleteModal';
-        modal.className = 'fixed inset-0 z-[2000] flex items-center justify-center p-6';
-        document.body.appendChild(modal);
-    }
+    const modal = document.getElementById('globalModal');
+    if (!modal) {
+        if (confirm("Delete this loaf forever?")) {
+            performDelete(postId);
+        }
+        return;
+    }
 
-    modal.innerHTML = `
-        <div class="absolute inset-0 bg-slate-900/80 backdrop-blur-md"></div>
-        <div class="relative bg-white w-full max-w-sm rounded-[44px] p-10 text-center shadow-2xl animate-in zoom-in duration-300">
-            <div class="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
-                <i class="fa-solid fa-trash-can text-2xl"></i>
-            </div>
-            <h2 class="text-xl font-black italic tracking-tighter uppercase mb-2">Trash this Loaf?</h2>
-            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed mb-10">
-                Once deleted, this loaf is gone from the grid forever.
-            </p>
-            <div class="flex flex-col gap-3">
-                <button onclick="performDelete(${postId})" class="w-full py-5 bg-red-600 text-white text-[9px] font-black uppercase tracking-widest rounded-2xl active:scale-95 transition-all shadow-lg shadow-red-200">
-                    Yes, Delete Forever
-                </button>
-                <button onclick="document.getElementById('premiumDeleteModal').remove()" class="w-full py-5 bg-slate-100 text-slate-500 text-[9px] font-black uppercase tracking-widest rounded-2xl active:scale-95 transition-all">
-                    No, Keep it
-                </button>
-            </div>
-        </div>
-    `;
-    document.body.style.overflow = 'hidden';
+    // Customize modal for delete confirmation
+    document.getElementById('modalTitle').textContent = "Delete Loaf";
+    document.getElementById('modalBody').innerHTML = `
+        Are you sure you want to delete this loaf?<br>
+        <small>This action cannot be undone.</small>
+    `;
+    document.getElementById('modalEmoji').textContent = '🗑️';
+
+    // Replace the single "Understood" button with Yes/No
+    const buttonContainer = document.querySelector('#globalModal button')?.parentElement;
+    if (buttonContainer) {
+        buttonContainer.innerHTML = `
+            <div class="flex gap-4">
+                <button onclick="closeModal()" class="flex-1 bg-slate-700 text-white py-4 rounded-2xl font-bold hover:bg-slate-600 transition">
+                    No, Cancel
+                </button>
+                <button onclick="performDelete(${postId}); closeModal()" class="flex-1 bg-red-600 text-white py-4 rounded-2xl font-bold hover:bg-red-700 transition">
+                    Yes, Delete
+                </button>
+            </div>
+        `;
+    }
+
+    // Show the modal
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    document.body.style.overflow = 'hidden';
 }
 
+// The actual delete logic
 async function performDelete(id) {
-    const { error } = await supabase.from('posts').delete().eq('id', id);
-    const modal = document.getElementById('premiumDeleteModal');
-    if (modal) modal.remove();
-    document.body.style.overflow = 'auto';
+    const { error } = await supabase
+        .from('posts')
+        .delete()
+        .eq('id', id);
 
-    if (error) {
-        window.showModal?.("Error", error.message, false);
-    }
-    // Again, 'renderFeed()' is handled by the 'on(DELETE)' listener!
-}
-function initRealtime() {
-    supabase
-        .channel('public:posts')
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'posts' }, async (payload) => {
-            // When a new post is inserted, fetch that specific user's profile
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('full_name, avatar_url')
-                .eq('id', payload.new.user_id)
-                .single();
-            
-            const { data: { user } } = await supabase.auth.getUser();
-            const isOwner = user?.id === payload.new.user_id;
-            
-            // Add it to the top of the UI
-            appendNewPost(payload.new, profile, isOwner);
-        })
-        .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'posts' }, (payload) => {
-            // Remove the deleted post from the UI automatically
-            const postEl = document.querySelector(`[data-post-id="${payload.old.id}"]`);
-            if (postEl) postEl.remove();
-        })
-        .subscribe();
-}
-
+    if (error) {
+        console.error("Delete failed:", error);
+        window.showModal?.("Error", "Could not delete: " + error.message, false);
+    } else {
+        await renderFeed();
+        window.showModal?.("Deleted", "Loaf removed successfully.", true);
+    }
+}.
 
 // --- 3. UI, THEME & STATS ---
 function handlePostInput(el) {
