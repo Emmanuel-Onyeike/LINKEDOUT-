@@ -106,3 +106,13 @@ async function createFollowNotification(actorId, targetUserId) {
     
     if (error) console.error("Notification Error:", error.message);
 }
+async function createFollowNotification(myId, theirId) {
+    const { data: myProfile } = await supabase.from('profiles').select('full_name').eq('id', myId).single();
+
+    await supabase.from('notifications').insert([{
+        user_id: theirId,
+        actor_id: myId,
+        type: 'follow',
+        content: `${myProfile.full_name} is now following your loafs!`
+    }]);
+}
