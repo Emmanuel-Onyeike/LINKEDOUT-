@@ -113,38 +113,64 @@ async function submitLoaf() {
 
 
 window.deleteLoaf = async function(id) {
-    // Show native confirm (simple & reliable)
-    if (!confirm("Delete this loaf forever? This cannot be undone.")) {
+    // Show custom yes/no modal
+    showDeleteConfirmModal(id);
+};
+
+// New function: shows centered yes/no modal
+function showDeleteConfirmModal(postId) {
+    const modal = document.getElementById('globalModal');
+    if (!modal) {
+        if (confirm("Delete this loaf forever?")) {
+            performDelete(postId);
+        }
         return;
     }
 
-    try {
-        const { error } = await supabase
-            .from('posts')
-            .delete()
-            .eq('id', id);
+    // Customize modal for delete confirmation
+    document.getElementById('modalTitle').textContent = "Delete Loaf";
+    document.getElementById('modalBody').innerHTML = `
+        Are you sure you want to delete this loaf?<br>
+        <small>This action cannot be undone.</small>
+    `;
+    document.getElementById('modalEmoji').textContent = '🗑️';
 
-        if (error) throw error;
-
-        // Success: refresh feed immediately
-        await renderFeed();
-
-        // Show success message (using your modal if available)
-        if (typeof window.showModal === 'function') {
-            window.showModal("Deleted", "Loaf removed successfully.", true);
-        } else {
-            alert("Loaf deleted!");
-        }
-
-    } catch (err) {
-        console.error("Delete failed:", err);
-        if (typeof window.showModal === 'function') {
-            window.showModal("Error", "Could not delete: " + (err.message || "Unknown error"), false);
-        } else {
-            alert("Delete failed: " + (err.message || "Unknown error"));
-        }
+    // Replace the single "Understood" button with Yes/No
+    const buttonContainer = document.querySelector('#globalModal button')?.parentElement;
+    if (buttonContainer) {
+        buttonContainer.innerHTML = `
+            <div class="flex gap-4">
+                <button onclick="closeModal()" class="flex-1 bg-slate-700 text-white py-4 rounded-2xl font-bold hover:bg-slate-600 transition">
+                    No, Cancel
+                </button>
+                <button onclick="performDelete(${postId}); closeModal()" class="flex-1 bg-red-600 text-white py-4 rounded-2xl font-bold hover:bg-red-700 transition">
+                    Yes, Delete
+                </button>
+            </div>
+        `;
     }
-};
+
+    // Show the modal
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    document.body.style.overflow = 'hidden';
+}
+
+// The actual delete logic
+async function performDelete(id) {
+    const { error } = await supabase
+        .from('posts')
+        .delete()
+        .eq('id', id);
+
+    if (error) {
+        console.error("Delete failed:", error);
+        window.showModal?.("Error", "Could not delete: " + error.message, false);
+    } else {
+        await renderFeed();
+        window.showModal?.("Deleted", "Loaf removed successfully.", true);
+    }
+}
 // --- 3. UI, THEME & STATS ---
 function handlePostInput(el) {
     const postActions = document.getElementById('postActions');
