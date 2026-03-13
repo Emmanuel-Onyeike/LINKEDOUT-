@@ -534,68 +534,100 @@ async function incrementPostView(postId) {
  * Isolated functions for Like, Repost, Share, and Commenting
  */
 
+/** * SOCIAL INTERACTION ENGINE - UPDATED 
+ * Fixed: Database sync checks and error reporting
+ */
+
 // --- LIKE HANDLER ---
 async function handleLike(postId, btn, alreadyLiked) {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return window.showModal("Auth", "Log in to like loafs.", false);
+    if (!user) return window.showModal("Auth Required", "Log in to like loafs.", false);
 
-    // Optimistic UI Update
+    // 1. Optimistic UI Update (Fast response)
     const icon = btn.querySelector('i');
     const countSpan = btn.querySelector('span');
     let currentCount = parseInt(countSpan.innerText);
 
     if (alreadyLiked) {
-        // Remove Like
         btn.classList.replace('text-pink-500', 'text-slate-400');
         icon.classList.replace('fa-solid', 'fa-regular');
         countSpan.innerText = Math.max(0, currentCount - 1);
         
-        await supabase.from('likes').delete().eq('post_id', postId).eq('user_id', user.id);
+        // 2. Database Sync
+        const { error } = await supabase.from('likes')
+            .delete()
+            .eq('post_id', postId)
+            .eq('user_id', user.id);
+            
+        if (error) {
+            console.error("Like Delete Error:", error.message);
+            window.showModal("Sync Error", "Could not remove like. Check console.", false);
+        }
     } else {
-        // Add Like
         btn.classList.replace('text-slate-400', 'text-pink-500');
         icon.classList.replace('fa-regular', 'fa-solid');
         countSpan.innerText = currentCount + 1;
         
-        await supabase.from('likes').insert([{ post_id: postId, user_id: user.id }]);
+        // 2. Database Sync
+        const { error } = await supabase.from('likes')
+            .insert([{ post_id: postId, user_id: user.id }]);
+            
+        if (error) {
+            console.error("Like Insert Error:", error.message);
+            window.showModal("Sync Error", "Could not save like. Ensure 'likes' table post_id is BIGINT.", false);
+        }
     }
-    // Refresh feed in background to sync with other users
-    renderFeed(); 
+    
+    // 3. Final Sync (Ensures counts are 100% accurate)
+    await renderFeed(); 
 }
 
 // --- REPOST HANDLER ---
 async function handleRepost(postId, alreadyReposted) {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return window.showModal("Auth", "Log in to repost.", false);
-    if (alreadyReposted) return; // Prevent double reposting
+    if (!user) return window.showModal("Auth Required", "Log in to repost.", false);
+    
+    if (alreadyReposted) {
+        // Toggle: Remove repost if already exists
+        const { error } = await supabase.from('reposts')
+            .delete()
+            .eq('post_id', postId)
+            .eq('user_id', user.id);
+        if (!error) renderFeed();
+    } else {
+        const { error } = await supabase.from('reposts')
+            .insert([{ post_id: postId, user_id: user.id }]);
 
-    const { error } = await supabase.from('reposts').insert([
-        { post_id: postId, user_id: user.id }
-    ]);
-
-    if (!error) {
-        window.showModal("Success", "Re-loafed to your profile!", true);
-        renderFeed();
+        if (error) {
+            console.error("Repost Error:", error.message);
+            window.showModal("Terminal Error", "Check if 'reposts' table exists with BIGINT post_id.", false);
+        } else {
+            window.showModal("Transmitted", "Re-loafed to your timeline!", true);
+            renderFeed();
+        }
     }
 }
 
 // --- SHARE HANDLER ---
 function handleShare(postId) {
+    // Generates a direct link to the specific post view
     const url = `${window.location.origin}/PAGES/post.html?id=${postId}`;
     
     if (navigator.share) {
         navigator.share({
             title: 'LinkedOut Loaf',
+            text: 'Check out this loaf on LinkedOut:',
             url: url
-        }).catch(console.error);
+        }).catch(err => console.log("Share cancelled or failed", err));
     } else {
-        navigator.clipboard.writeText(url);
-        window.showModal("Terminal", "Link copied to clipboard.", true);
+        navigator.clipboard.writeText(url).then(() => {
+            window.showModal("Terminal", "Direct link copied to clipboard.", true);
+        });
     }
 }
 
-// --- COMMENT / VIEW POST HANDLER ---
+// --- OPEN COMMENTS ---
 function openComments(postId) {
-    // Redirects to the dedicated post view page where comments live
+    // Navigate to post detail page
     window.location.href = `/PAGES/post.html?id=${postId}`;
 }
