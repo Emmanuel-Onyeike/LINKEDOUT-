@@ -1,72 +1,142 @@
 /**
- * LINKEDOUT DASHBOARD - FIXED VERSION (no syntax errors, reliable feed)
-
+ * LINKEDOUT DASHBOARD – COMPLETE & ORGANIZED VERSION
+ * Single file – one DOMContentLoaded – all features included
+ * Last updated structure: March 2025 style
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
-
-    if (typeof syncAllIdentityElements === 'function') {
-        await syncAllIdentityElements();
+    // ── 0. Early safety checks ────────────────────────────────────────
+    if (typeof supabase === 'undefined') {
+        console.error("Supabase not loaded. Check script order in HTML.");
+        return;
     }
 
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+        window.location.href = '/login';   // ← change to your actual login path if different
+        return;
+    }
 
+    // ── 1. Identity & realtime sync (highest priority) ────────────────
+    await syncAllIdentityElements(user.id);
+    setupRealtimeIdentitySync(user.id);
+    await syncIdentity(user.id);
+    checkPromotion(user.id);
+
+    // ── 2. Load main UI sections ──────────────────────────────────────
     await renderFeed();
     syncSidebarCommunities();
-    checkSavedTheme();
+    loadRecommendations();
     updateDashboardStats();
-
-
-
-
-
-
-
+    checkSavedTheme();
 });
 
+// =============================================================================
+//  1. IDENTITY & PROFILE SYNC
+// =============================================================================
 
+async function syncAllIdentityElements(userId) {
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('avatar_url, full_name')
+        .eq('id', userId)
+        .single();
+
+    if (!profile) return;
+
+    const freshUrl = `${profile.avatar_url || '/IMG/Logo.jpeg'}?t=${Date.now()}`;
+
+    ['dashPfpNav', 'dashPfp', 'dashPfpLarge'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.src = freshUrl;
+    });
+
+    const nameEl = document.getElementById('dashName');
+    if (nameEl) nameEl.textContent = profile.full_name || 'Anonymous';
+}
+
+function setupRealtimeIdentitySync(userId) {
+    supabase
+        .channel('global_pfp_sync')
+        .on('postgres_changes', {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'profiles',
+            filter: `id=eq.${userId}`
+        }, (payload) => {
+            if (!payload.new.avatar_url) return;
+            const freshUrl = `${payload.new.avatar_url}?t=${Date.now()}`;
+            ['dashPfpNav', 'dashPfp', 'dashPfpLarge'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.src = freshUrl;
+            });
+        })
+        .subscribe();
+}
+
+async function syncIdentity(userId) {
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+    if (!profile) return;
+
+    const freshUrl = `${profile.avatar_url}?t=${Date.now()}`;
+    ['dashPfpNav', 'dashPfp', 'dashPfpLarge'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.src = freshUrl;
+    });
+
+    const { count } = await supabase
+        .from('follows')
+        .select('*', { count: 'exact', head: true })
+        .eq('following_id', userId);
+
+    const followerEl = document.getElementById('followerCount');
+    if (followerEl) followerEl.textContent = count || 0;
+}
+
+// =============================================================================
+//  2. FEED + POSTING + DELETE
+// =============================================================================
 
 async function renderFeed() {
     const feedContainer = document.getElementById('mainFeed');
     const placeholder = document.getElementById('feedPlaceholder');
-@@ -19,40 +33,41 @@ async function renderFeed() {
-    const { data: { user } } = await supabase.auth.getUser();
-    const currentUserId = user ? user.id : null;
+    if (!feedContainer) return;
 
-    // Simple fetch - no join, no error
+    const { data: { user } } = await supabase.auth.getUser();
+    const currentUserId = user?.id ?? null;
+
     const { data: posts, error } = await supabase
         .from('posts')
         .select('*')
-
-
-
-
-
         .order('created_at', { ascending: false });
 
     if (error) {
         console.error("Feed error:", error);
         if (placeholder) {
-            placeholder.innerHTML = '<p class="text-red-500 text-center py-8">Feed error: ' + (error.message || 'Unknown') + '</p>';
+            placeholder.innerHTML = `<p class="text-red-500 text-center py-8">Feed error: ${error.message || 'Unknown'}</p>`;
             placeholder.style.display = 'block';
         }
         return;
     }
-if (!posts || posts.length === 0) {
 
+    if (!posts || posts.length === 0) {
         if (placeholder) {
             placeholder.innerHTML = `
                 <div class="flex flex-col items-center justify-center py-20 px-6 animate-in fade-in duration-700">
                     <div class="w-20 h-20 bg-white border border-slate-100 rounded-[32px] flex items-center justify-center shadow-sm mb-6">
                         <i class="fa-solid fa-mug-hot text-slate-200 text-2xl"></i>
                     </div>
-                    
                     <h3 class="text-[11px] font-black text-slate-800 uppercase tracking-[0.3em] mb-2">
                         Grid is Empty
                     </h3>
                     <p class="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] max-w-[220px] leading-relaxed text-center">
                         No loafs detected in the wild. Start the movement.
                     </p>
-
                     <div class="mt-8 opacity-20">
                         <div class="w-1 h-12 bg-gradient-to-b from-slate-400 to-transparent rounded-full"></div>
                     </div>
@@ -75,11 +145,18 @@ if (!posts || posts.length === 0) {
             placeholder.style.display = 'block';
         }
         return;
-@@ -68,47 +83,68 @@ if (!posts || posts.length === 0) {
+    }
+
+    if (placeholder) placeholder.style.display = 'none';
+
+    let postWrapper = document.getElementById('postWrapper');
+    if (!postWrapper) {
+        postWrapper = document.createElement('div');
+        postWrapper.id = 'postWrapper';
+        postWrapper.className = 'space-y-4';
         feedContainer.appendChild(postWrapper);
     }
 
-    // Get profiles separately
     const userIds = [...new Set(posts.map(p => p.user_id))];
     const { data: profilesData } = await supabase
         .from('profiles')
@@ -93,9 +170,6 @@ if (!posts || posts.length === 0) {
         const profile = profileMap[post.user_id] || {};
         const isOwner = currentUserId === post.user_id;
 
-
-
-
         return `
             <div class="bg-white border border-slate-200 rounded-[32px] overflow-hidden shadow-sm">
                 <div class="p-6">
@@ -108,11 +182,6 @@ if (!posts || posts.length === 0) {
                             </div>
                         </div>
                         ${isOwner ? `<button onclick="deleteLoaf(${post.id})" class="text-red-500"><i class="fa-solid fa-trash"></i></button>` : ''}
-
-
-
-
-
                     </div>
                     <p class="text-sm text-slate-700">${post.content}</p>
                 </div>
@@ -120,8 +189,6 @@ if (!posts || posts.length === 0) {
         `;
     }).join('');
 }
-
-
 
 async function submitLoaf() {
     const input = document.getElementById('postInput');
@@ -133,29 +200,25 @@ async function submitLoaf() {
 
     const { error } = await supabase.from('posts').insert([{
         user_id: user.id,
-@@ -119,154 +155,141 @@ async function submitLoaf() {
+        content: content,
+        title: "Loaf",
+        category: "General"
+    }]);
 
     if (error) {
         console.error(error);
         alert("Post failed: " + error.message);
     } else {
         input.value = '';
-
         await renderFeed();
         alert("Posted!");
-
-
-
     }
-
 }
-window.deleteLoaf = async function(id) {
-    // Show custom yes/no modal
 
+window.deleteLoaf = function(id) {
     showDeleteConfirmModal(id);
 };
 
-// New function: shows centered yes/no modal
 function showDeleteConfirmModal(postId) {
     const modal = document.getElementById('globalModal');
     if (!modal) {
@@ -165,7 +228,6 @@ function showDeleteConfirmModal(postId) {
         return;
     }
 
-    // Customize modal for delete confirmation
     document.getElementById('modalTitle').textContent = "Delete Loaf";
     document.getElementById('modalBody').innerHTML = `
         Are you sure you want to delete this loaf?<br>
@@ -173,33 +235,29 @@ function showDeleteConfirmModal(postId) {
     `;
     document.getElementById('modalEmoji').textContent = '🗑️';
 
-    // Replace the single "Understood" button with Yes/No
     const buttonContainer = document.querySelector('#globalModal button')?.parentElement;
     if (buttonContainer) {
         buttonContainer.innerHTML = `
             <div class="flex flex-col gap-3 w-full mt-2">
-        <button onclick="performDelete(${postId}); closeModal()" 
-            class="w-full py-5 bg-red-600 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl 
-            hover:bg-red-700 hover:shadow-lg hover:shadow-red-200 active:scale-95 transition-all duration-200">
-            Confirm Deletion
-        </button>
-
-        <button onclick="closeModal()" 
-            class="w-full py-5 bg-slate-50 text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl 
-            hover:bg-slate-100 hover:text-slate-600 active:scale-95 transition-all duration-200">
-            Keep this Loaf
-        </button>
-    </div>
+                <button onclick="performDelete(${postId}); closeModal()"
+                    class="w-full py-5 bg-red-600 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl 
+                    hover:bg-red-700 hover:shadow-lg hover:shadow-red-200 active:scale-95 transition-all duration-200">
+                    Confirm Deletion
+                </button>
+                <button onclick="closeModal()"
+                    class="w-full py-5 bg-slate-50 text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl 
+                    hover:bg-slate-100 hover:text-slate-600 active:scale-95 transition-all duration-200">
+                    Keep this Loaf
+                </button>
+            </div>
         `;
     }
 
-    // Show the modal
     modal.classList.remove('hidden');
     modal.classList.add('flex');
     document.body.style.overflow = 'hidden';
 }
 
-// The actual delete logic
 async function performDelete(id) {
     const { error } = await supabase
         .from('posts')
@@ -212,12 +270,12 @@ async function performDelete(id) {
     } else {
         await renderFeed();
         window.showModal?.("Deleted", "Loaf removed successfully.", true);
-
     }
 }
 
-// --- 3. UI, THEME & STATS ---
-
+// =============================================================================
+//  3. UI HELPERS – Theme, Input, Stats, Global Modal
+// =============================================================================
 
 function handlePostInput(el) {
     const postActions = document.getElementById('postActions');
@@ -226,6 +284,7 @@ function handlePostInput(el) {
 
     if (el.value.length > maxLength) el.value = el.value.substring(0, maxLength);
     if (counter) counter.innerText = `${el.value.length} / ${maxLength}`;
+
     el.style.height = "auto";
     el.style.height = (el.scrollHeight) + "px";
 
@@ -278,73 +337,9 @@ function updateThemeIcon(isDark) {
     }
 }
 
-// --- 4. COMMUNITIES ---
-function syncSidebarCommunities() {
-    const communityList = JSON.parse(localStorage.getItem('userCommunities')) || [];
-    const sidebarCard = document.getElementById('myCommunitiesCard');
-    if (!sidebarCard) return;
-
-    let listWrapper = document.getElementById('sidebarCommList');
-    if (!listWrapper) {
-        listWrapper = document.createElement('div');
-        listWrapper.id = 'sidebarCommList';
-        listWrapper.className = 'space-y-3 mb-4';
-        sidebarCard.querySelector('.flex.justify-between').insertAdjacentElement('afterend', listWrapper);
-    }
-
-    listWrapper.innerHTML = communityList.slice(0, 3).map(comm => `
-        <div class="flex items-center justify-between p-2 rounded-2xl hover:bg-slate-50 transition-all border border-transparent hover:border-slate-100">
-@@ -275,209 +298,15 @@ function syncSidebarCommunities() {
-                <h4 class="text-[10px] font-black text-slate-800 uppercase truncate max-w-[80px]">${comm.name}</h4>
-            </div>
-            <button onclick="window.location.href='/PAGES/open_comms.html?id=${comm.id}'" class="bg-slate-50 text-slate-800 px-3 py-1.5 rounded-xl text-[8px] font-black uppercase">Open</button>
-        </div>
-    `).join('');
-}
-
-function toggleLinkedOutModal() {
-  const overlay = document.getElementById('linkedOutModalOverlay');
-  if (!overlay) {
-    console.error("Overlay not found");
-    return;
-  }
-
-  if (overlay.classList.contains('hidden')) {
-    // Open - exact steps from your working console test
-    overlay.classList.remove('hidden');
-    overlay.classList.add('flex');
-    overlay.style.opacity = '1';
-
-    const content = document.getElementById('linkedOutDropdown');
-    if (content) {
-      content.classList.remove('scale-95', 'opacity-0');
-      content.classList.add('scale-100', 'opacity-100');
-    }
-
-    document.body.style.overflow = 'hidden';
-  } else {
-    // Close
-    overlay.style.opacity = '0';
-
-    const content = document.getElementById('linkedOutDropdown');
-    if (content) {
-      content.classList.remove('scale-100', 'opacity-100');
-      content.classList.add('scale-95', 'opacity-0');
-    }
-
-    // Hide after fade (simple delay)
-    setTimeout(() => {
-      overlay.classList.add('hidden');
-      overlay.classList.remove('flex');
-      document.body.style.overflow = '';
-    }, 300);
-  }
-
-  console.log("Modal toggle called - current hidden:", overlay.classList.contains('hidden'));
-}
 window.showModal = function(title, message, isSuccess = true) {
     const modal = document.getElementById('globalModal');
-    if (!modal) return alert(message); // fallback
+    if (!modal) return alert(message);
 
     document.getElementById('modalTitle').textContent = title;
     document.getElementById('modalBody').textContent = message;
@@ -357,15 +352,44 @@ window.showModal = function(title, message, isSuccess = true) {
 
 function closeModal() {
     const modal = document.getElementById('globalModal');
+    if (!modal) return;
     modal.classList.add('hidden');
     modal.classList.remove('flex');
     document.body.style.overflow = '';
 }
+
+// =============================================================================
+//  4. COMMUNITIES + RECOMMENDATIONS + PROMOTION + LINKEDOUT DROPDOWN
+// =============================================================================
+
+function syncSidebarCommunities() {
+    const communityList = JSON.parse(localStorage.getItem('userCommunities')) || [];
+    const sidebarCard = document.getElementById('myCommunitiesCard');
+    if (!sidebarCard) return;
+
+    let listWrapper = document.getElementById('sidebarCommList');
+    if (!listWrapper) {
+        listWrapper = document.createElement('div');
+        listWrapper.id = 'sidebarCommList';
+        listWrapper.className = 'space-y-3 mb-4';
+        sidebarCard.querySelector('.flex.justify-between')?.insertAdjacentElement('afterend', listWrapper);
+    }
+
+    listWrapper.innerHTML = communityList.slice(0, 3).map(comm => `
+        <div class="flex items-center justify-between p-2 rounded-2xl hover:bg-slate-50 transition-all border border-transparent hover:border-slate-100">
+            <div class="flex items-center gap-3">
+                <img src="${comm.image || '/IMG/Logo.jpeg'}" class="w-10 h-10 rounded-xl object-cover">
+                <h4 class="text-[10px] font-black text-slate-800 uppercase truncate max-w-[80px]">${comm.name}</h4>
+            </div>
+            <button onclick="window.location.href='/PAGES/open_comms.html?id=${comm.id}'" class="bg-slate-50 text-slate-800 px-3 py-1.5 rounded-xl text-[8px] font-black uppercase">Open</button>
+        </div>
+    `).join('');
+}
+
 async function loadRecommendations() {
     const listContainer = document.getElementById('recommendationList');
     if (!listContainer) return;
 
-    // 1. Fetch profiles (limiting to 5 for the sidebar)
     const { data: profiles, error } = await supabase
         .from('profiles')
         .select('id, full_name, avatar_url, role')
@@ -376,14 +400,12 @@ async function loadRecommendations() {
         return;
     }
 
-    // 2. Clear loading state
     listContainer.innerHTML = '';
 
-    // 3. Render each user
     profiles.forEach(profile => {
         const userCard = document.createElement('div');
         userCard.className = "flex items-center justify-between group cursor-pointer";
-        
+
         userCard.innerHTML = `
             <div class="flex items-center gap-4" onclick="window.location.href='/PAGES/view-profile.html?id=${profile.id}'">
                 <div class="relative">
@@ -404,144 +426,75 @@ async function loadRecommendations() {
     });
 }
 
-// Run on load
-document.addEventListener('DOMContentLoaded', loadRecommendations);
-/**
- * LINKEDOUT GLOBAL IDENTITY SYNC
- * Covers: Nav (w-9), Start-a-Loaf (w-12), and Sidebar (w-16)
- */
-
-document.addEventListener('DOMContentLoaded', async () => {
-    // Safety check for supabase initialization
-    if (typeof supabase === 'undefined') {
-        console.error("Supabase not loaded. Check script order in HTML.");
-        return;
-    }
-    await syncAllDashboardImages();
-    setupRealtimeSync();
-});
-
-async function syncAllDashboardImages() {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return window.location.href = '/SCRIPTS/auth.js';
-
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('avatar_url, full_name')
-        .eq('id', user.id)
+async function checkPromotion(userId) {
+    const { data: tierData } = await supabase
+        .from('user_tiers')
+        .select('*')
+        .eq('id', userId)
         .single();
 
-    if (profile && profile.avatar_url) {
-        const freshUrl = `${profile.avatar_url}?t=${Date.now()}`;
-        
-        // List of every PFP ID we want to update
-        const pfpIds = ['dashPfpNav', 'dashPfp', 'dashPfpLarge'];
-
-        pfpIds.forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.src = freshUrl;
-        });
-
-        // Update the name display if it exists
-        const nameEl = document.getElementById('dashName');
-        if (nameEl) nameEl.innerText = profile.full_name;
-    }
-}
-
-function setupRealtimeSync() {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-        if (!user) return;
-
-        supabase
-            .channel('global_pfp_sync')
-            .on('postgres_changes', { 
-                event: 'UPDATE', 
-                schema: 'public', 
-                table: 'profiles',
-                filter: `id=eq.${user.id}` // Only listen to YOUR changes
-            }, (payload) => {
-                const freshUrl = `${payload.new.avatar_url}?t=${Date.now()}`;
-                
-                // Update every PFP instance immediately without refresh
-                ['dashPfpNav', 'dashPfp', 'dashPfpLarge'].forEach(id => {
-                    const el = document.getElementById(id);
-                    if (el) el.src = freshUrl;
-                });
-            })
-            .subscribe();
-    });
-}
-document.addEventListener('DOMContentLoaded', async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    syncIdentity(user.id);
-    checkPromotion(user.id);
-});
-
-async function syncIdentity(userId) {
-    const { data: profile } = await supabase.from('profiles').select('*').eq('id', userId).single();
-    if (!profile) return;
-
-    const freshUrl = `${profile.avatar_url}?t=${Date.now()}`;
-    ['dashPfpNav', 'dashPfp', 'dashPfpLarge'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.src = freshUrl;
-    });
-
-    // Update Follower Stats
-    const { count } = await supabase.from('follows').select('*', { count: 'exact', head: true }).eq('following_id', userId);
-    if (document.getElementById('followerCount')) document.getElementById('followerCount').innerText = count || 0;
-}
-
-async function checkPromotion(userId) {
-    const { data: tierData } = await supabase.from('user_tiers').select('*').eq('id', userId).single();
-    
-    // Check if current days_old triggers a message (e.g., exactly 11, 21, or 31)
     const milestones = { 11: 'Tier 2', 21: 'Tier 3', 41: 'Unverified' };
-    
-    if (milestones[tierData.days_old]) {
+
+    if (tierData?.days_old && milestones[tierData.days_old]) {
         showPromotionModal(milestones[tierData.days_old]);
     }
 }
+
 function showPromotionModal(tierName) {
-    const modal = document.createElement("div");
+    const modal = document.createElement('div');
+    modal.className = "fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-6";
 
     modal.innerHTML = `
-        <div class="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
-            <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl text-center w-72 shadow-lg">
-                
-                <div class="w-16 h-16 bg-cyan-500/10 text-cyan-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <i class="fa-solid fa-bolt text-2xl"></i>
-                </div>
-
-                <h3 class="text-xs font-black uppercase tracking-widest dark:text-white">
-                    Promotion Detected
-                </h3>
-
-                <p class="text-[10px] text-slate-500 mt-2 mb-6">
-                    Your loyalty has earned you a spot in 
-                    <span class="text-cyan-500 font-bold">${tierName}</span>.
-                </p>
-
-                <button onclick="this.closest('.fixed').remove()" 
-                    class="w-full py-3 bg-cyan-500 text-white rounded-2xl text-[10px] font-black uppercase">
-                    Dismiss Signal
-                </button>
-
+        <div class="bg-white dark:bg-slate-900 p-8 rounded-[40px] shadow-2xl text-center max-w-xs animate-in zoom-in duration-300">
+            <div class="w-16 h-16 bg-cyan-500/10 text-cyan-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fa-solid fa-bolt text-2xl"></i>
             </div>
+            <h3 class="text-xs font-black uppercase tracking-widest dark:text-white">Promotion Detected</h3>
+            <p class="text-[10px] text-slate-500 mt-2 mb-6">Your loyalty has earned you a spot in <span class="text-cyan-500 font-bold">${tierName}</span>.</p>
+            <button onclick="this.parentElement.parentElement.remove()" class="w-full py-3 bg-cyan-500 text-white rounded-2xl text-[10px] font-black uppercase">Dismiss Signal</button>
         </div>
     `;
 
     document.body.appendChild(modal);
 }
 
-async function incrementPostView(postId) {
-    const { error } = await supabase.rpc('increment_post_views', { 
-        target_post_id: postId 
-    });
-
-    if (error) {
-        console.error("View Count Error:", error.message);
+function toggleLinkedOutModal() {
+    const overlay = document.getElementById('linkedOutModalOverlay');
+    if (!overlay) {
+        console.error("Overlay not found");
+        return;
     }
+
+    if (overlay.classList.contains('hidden')) {
+        // Open
+        overlay.classList.remove('hidden');
+        overlay.classList.add('flex');
+        overlay.style.opacity = '1';
+        const content = document.getElementById('linkedOutDropdown');
+        if (content) {
+            content.classList.remove('scale-95', 'opacity-0');
+            content.classList.add('scale-100', 'opacity-100');
+        }
+        document.body.style.overflow = 'hidden';
+    } else {
+        // Close
+        overlay.style.opacity = '0';
+        const content = document.getElementById('linkedOutDropdown');
+        if (content) {
+            content.classList.remove('scale-100', 'opacity-100');
+            content.classList.add('scale-95', 'opacity-0');
+        }
+        setTimeout(() => {
+            overlay.classList.add('hidden');
+            overlay.classList.remove('flex');
+            document.body.style.overflow = '';
+        }, 300);
+    }
+
+    console.log("Modal toggle called - current hidden:", overlay.classList.contains('hidden'));
+}
+
+async function incrementPostView(postId) {
+    const { error } = await supabase.rpc('increment_post_views', { target_post_id: postId });
+    if (error) console.error("View Count Error:", error.message);
 }
