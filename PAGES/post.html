@@ -9,86 +9,99 @@
     <link rel="stylesheet" href="/CSS/post.css">
     <link rel="stylesheet" href="/SCRIPTS/alerts.js">
     <link rel="icon" type="image/webp" href="/IMG/Logo.jpeg" />
+    <style>
+        .modal-anim { animation: zoomIn 0.3s ease-out; }
+        @keyframes zoomIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        
+        /* Smooth transition for the main card */
+        .main-card { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        .main-card:focus-within { border-color: #22d3ee; box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.05); }
+        
+        /* Hide scrollbar but allow scrolling */
+        textarea::-webkit-scrollbar { width: 0px; background: transparent; }
+    </style>
 </head>
-<body class="bg-slate-50 font-sans text-slate-900">
+<body class="bg-[#F8FAFC] font-sans text-slate-900 antialiased">
 
-    <div id="globalModal" class="hidden fixed inset-0 z-[9999] items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm">
-        <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden modal-anim">
-            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                <h3 id="modalTitle" class="text-sm font-black text-slate-800 uppercase tracking-widest"></h3>
-                <button onclick="closeGlobalModal()" class="text-slate-400 hover:text-red-500 transition">
-                    <i class="fa-solid fa-xmark text-xl"></i>
+    <div id="globalModal" class="hidden fixed inset-0 z-[9999] items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md">
+        <div class="bg-white w-full max-w-md rounded-[40px] shadow-2xl overflow-hidden modal-anim p-8 text-center">
+            <div class="flex justify-between items-center mb-6">
+                <h3 id="modalTitle" class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]"></h3>
+                <button onclick="closeGlobalModal()" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 transition">
+                    <i class="fa-solid fa-xmark text-slate-400"></i>
                 </button>
             </div>
-            <div id="modalBody" class="p-6 text-center text-sm font-medium text-slate-600"></div>
+            <div id="modalBody" class="text-sm font-bold text-slate-800 leading-relaxed py-4"></div>
         </div>
     </div>
 
-    <nav class="bg-white border-b border-slate-200 py-3 sticky top-0 z-50">
-        <div class="max-w-2xl mx-auto px-4 flex justify-between items-center">
-            <div class="flex items-center gap-2">
-                <div class="w-8 h-8 bg-slate-800 rounded-lg flex items-center justify-center">
-                    <i class="fa-solid fa-pen-nib text-white text-xs"></i>
+    <nav class="bg-white/80 backdrop-blur-xl border-b border-slate-100 py-4 sticky top-0 z-50">
+        <div class="max-w-2xl mx-auto px-6 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-slate-900 rounded-2xl flex items-center justify-center shadow-lg shadow-slate-200">
+                    <i class="fa-solid fa-feather-pointed text-white text-sm"></i>
                 </div>
-                <span class="font-black text-lg tracking-tighter text-slate-800 uppercase">New Loaf</span>
+                <span class="font-black text-sm tracking-tight text-slate-900 uppercase italic">Publish Loaf</span>
             </div>
-            <a href="/PAGES/dashboard.html" class="text-[10px] font-black uppercase text-slate-400 hover:text-red-500 transition">Discard</a>
+            <a href="/PAGES/dashboard.html" class="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-red-500 transition-all">Discard</a>
         </div>
     </nav>
 
-    <main class="max-w-2xl mx-auto py-10 px-6">
-        <div class="bg-white border border-slate-200 rounded-[40px] shadow-sm overflow-hidden main-card">
+    <main class="max-w-2xl mx-auto py-12 px-6">
+        <div class="bg-white border border-slate-200 rounded-[48px] shadow-xl shadow-slate-100/50 overflow-hidden main-card">
             
-            <div class="p-6 flex items-center gap-4">
-                <div class="relative">
-                    <img id="dashPfp"  src="/IMG/Logo.jpeg" class="w-12 h-12 rounded-full object-cover border-2 border-slate-100">
-                    <div id="statusBadge" class="hidden absolute -right-1 -top-1 bg-cyan-500 text-white w-4 h-4 rounded-full border-2 border-white flex items-center justify-center">
-                        <i class="fa-solid fa-z text-[6px]"></i>
+            <div class="p-8 flex items-center gap-4">
+                <div class="relative group">
+                    <img id="dashPfp" src="/IMG/Logo.jpeg" class="w-14 h-14 rounded-[22px] object-cover border-4 border-slate-50 group-hover:scale-105 transition-transform">
+                    <div id="statusBadge" class="hidden absolute -right-1 -bottom-1 bg-cyan-500 text-white w-5 h-5 rounded-full border-2 border-white flex items-center justify-center shadow-sm">
+                        <i class="fa-solid fa-z text-[7px]"></i>
                     </div>
                 </div>
                 <div>
-                    <h3 id="dashName" class="text-sm font-black text-slate-800 uppercase">Loafer #1</h3>
-                    <div class="flex items-center gap-1 text-[9px] font-black text-slate-400 uppercase tracking-tighter">
-                        <i class="fa-solid fa-earth-americas text-cyan-500"></i> Public
+                    <h3 id="dashName" class="text-xs font-black text-slate-900 uppercase tracking-tighter">Loafer #1</h3>
+                    <div class="flex items-center gap-1.5 mt-1">
+                        <span class="px-2 py-0.5 bg-cyan-50 text-cyan-600 text-[8px] font-black uppercase tracking-tighter rounded-full flex items-center gap-1">
+                            <i class="fa-solid fa-earth-americas"></i> Public Feed
+                        </span>
                     </div>
                 </div>
             </div>
 
-            <div class="px-6 pb-2">
+            <div class="px-8 pb-4">
                 <textarea id="postInput"
-                            class="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium text-slate-700 placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-400 outline-none transition-all resize-none overflow-hidden"
-                            placeholder="What do you wish to drop for the lazy people today?..."
-                            rows="1"
-                            oninput="handlePostInput(this)"></textarea>
-                       
+                    class="w-full min-h-[200px] bg-transparent border-none text-xl font-medium text-slate-800 placeholder:text-slate-300 focus:ring-0 resize-none leading-relaxed transition-all"
+                    placeholder="What do you wish to drop for the lazy people today?..."
+                    oninput="handlePostInput(this)"></textarea>
             </div>
 
-            <div id="imagePreviewContainer" class="hidden px-6 pb-6">
-                <div class="relative rounded-3xl overflow-hidden border border-slate-100 group">
-                    <img id="imagePreview" src="" class="w-full h-auto max-h-[400px] object-cover">
-                    <button onclick="clearMedia()" class="absolute top-4 right-4 bg-white/90 text-red-500 w-10 h-10 rounded-full flex items-center justify-center shadow-lg hover:bg-red-500 hover:text-white transition-all">
+            <div id="imagePreviewContainer" class="hidden px-8 pb-8">
+                <div class="relative rounded-[32px] overflow-hidden border border-slate-100 shadow-inner group">
+                    <img id="imagePreview" src="" class="w-full h-auto max-h-[450px] object-cover">
+                    <div class="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <button onclick="clearMedia()" class="absolute top-4 right-4 bg-white text-red-500 w-12 h-12 rounded-full flex items-center justify-center shadow-xl hover:bg-red-500 hover:text-white transition-all transform hover:rotate-90">
                         <i class="fa-solid fa-trash-can"></i>
                     </button>
                 </div>
             </div>
 
-            <div class="p-4 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between">
-                <div class="flex gap-1">
-                    <button onclick="document.getElementById('fileInput').click()" class="w-10 h-10 rounded-full flex items-center justify-center text-slate-400 hover:bg-white hover:text-cyan-500 hover:shadow-sm transition-all">
+            <div class="p-6 bg-slate-50/80 border-t border-slate-100 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <button onclick="document.getElementById('fileInput').click()" class="w-12 h-12 rounded-2xl flex items-center justify-center text-slate-400 hover:bg-white hover:text-cyan-500 hover:shadow-md transition-all">
                         <i class="fa-solid fa-image text-lg"></i>
                     </button>
 
-                    
-                    <button onclick="triggerAISubscribe()" class="w-10 h-10 rounded-full flex items-center justify-center text-slate-400 hover:bg-white hover:text-purple-500 hover:shadow-sm transition-all group">
-                        <i class="fa-solid fa-wand-magic-sparkles text-lg group-hover:animate-pulse"></i>
+                    <button onclick="triggerAISubscribe()" class="w-12 h-12 rounded-2xl flex items-center justify-center text-slate-400 hover:bg-white hover:text-purple-500 hover:shadow-md transition-all group">
+                        <i class="fa-solid fa-wand-magic-sparkles text-lg group-hover:rotate-12"></i>
                     </button>
-                     <span id="charCounter" class="text-[10px] font-black text-slate-300 uppercase tracking-widest">0 / 280</span>
+                    
+                    <div class="h-6 w-[1px] bg-slate-200 mx-2"></div>
+                    
+                    <span id="charCounter" class="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">0 / 280</span>
                 </div>
 
                 <div id="postActions" class="flex items-center gap-6">
-                   
-                    <button onclick="submitLoaf()" class="bg-slate-800 text-white px-10 py-3.5 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-cyan-600 hover:shadow-lg hover:shadow-cyan-200 transition-all active:scale-95">
-                        Post
+                    <button onclick="submitLoaf()" class="bg-slate-900 text-white px-10 py-4 rounded-[20px] text-[10px] font-black uppercase tracking-[0.2em] hover:bg-cyan-600 hover:shadow-xl hover:shadow-cyan-100 transition-all active:scale-95">
+                        Post Loaf
                     </button>
                 </div>
             </div>
@@ -97,14 +110,10 @@
 
     <input type="file" id="fileInput" class="hidden" accept="image/*" onchange="previewImage(event)">
 
-
-   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-<script src="/SCRIPTS/global.js"></script>
-
-<script src="/SCRIPTS/dashboard.js"></script>
-
-<script src="/SCRIPTS/auth.js"></script>
-        <script src="/SCRIPTS/post.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/SCRIPTS/global.js"></script>
+    <script src="/SCRIPTS/dashboard.js"></script>
+    <script src="/SCRIPTS/auth.js"></script>
+    <script src="/SCRIPTS/post.js"></script>
 </body>
 </html>
