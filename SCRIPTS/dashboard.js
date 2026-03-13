@@ -12,165 +12,166 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 async function renderFeed() {
-    const feedContainer = document.getElementById('mainFeed');
-    const placeholder = document.getElementById('feedPlaceholder');
-    if (!feedContainer) return;
+    const feedContainer = document.getElementById('mainFeed');
+    const placeholder = document.getElementById('feedPlaceholder');
+    if (!feedContainer) return;
 
-    const { data: { user } } = await supabase.auth.getUser();
-    const currentUserId = user ? user.id : null;
+    const { data: { user } } = await supabase.auth.getUser();
+    const currentUserId = user ? user.id : null;
 
-    // Simple fetch - no join, no error
-    const { data: posts, error } = await supabase
-        .from('posts')
-        .select('*')
-        .order('created_at', { ascending: false });
+    // Simple fetch - no join, no error
+    const { data: posts, error } = await supabase
+        .from('posts')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-    if (error) {
-        console.error("Feed error:", error);
-        if (placeholder) {
-            placeholder.innerHTML = '<p class="text-red-500 text-center py-8">Feed error: ' + (error.message || 'Unknown') + '</p>';
-            placeholder.style.display = 'block';
-        }
-        return;
-    }
+    if (error) {
+        console.error("Feed error:", error);
+        if (placeholder) {
+            placeholder.innerHTML = '<p class="text-red-500 text-center py-8">Feed error: ' + (error.message || 'Unknown') + '</p>';
+            placeholder.style.display = 'block';
+        }
+        return;
+    }
 
-    if (!posts || posts.length === 0) {
-        if (placeholder) {
-            placeholder.innerHTML = '<p class="text-slate-500 text-center py-8">No loafs yet. Be the first!</p>';
-            placeholder.style.display = 'block';
-        }
-        return;
-    }
+    if (!posts || posts.length === 0) {
+        if (placeholder) {
+            placeholder.innerHTML = '<p class="text-slate-500 text-center py-8">No loafs yet. Be the first!</p>';
+            placeholder.style.display = 'block';
+        }
+        return;
+    }
 
-    if (placeholder) placeholder.style.display = 'none';
+    if (placeholder) placeholder.style.display = 'none';
 
-    let postWrapper = document.getElementById('postWrapper');
-    if (!postWrapper) {
-        postWrapper = document.createElement('div');
-        postWrapper.id = 'postWrapper';
-        postWrapper.className = 'space-y-4';
-        feedContainer.appendChild(postWrapper);
-    }
+    let postWrapper = document.getElementById('postWrapper');
+    if (!postWrapper) {
+        postWrapper = document.createElement('div');
+        postWrapper.id = 'postWrapper';
+        postWrapper.className = 'space-y-4';
+        feedContainer.appendChild(postWrapper);
+    }
 
-    // Get profiles separately
-    const userIds = [...new Set(posts.map(p => p.user_id))];
-    const { data: profilesData } = await supabase
-        .from('profiles')
-        .select('id, full_name, avatar_url')
-        .in('id', userIds);
+    // Get profiles separately
+    const userIds = [...new Set(posts.map(p => p.user_id))];
+    const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('id, full_name, avatar_url')
+        .in('id', userIds);
 
-    const profileMap = {};
-    profilesData?.forEach(p => profileMap[p.id] = p);
+    const profileMap = {};
+    profilesData?.forEach(p => profileMap[p.id] = p);
 
-    postWrapper.innerHTML = posts.map(post => {
-        const profile = profileMap[post.user_id] || {};
-        const isOwner = currentUserId === post.user_id;
+    postWrapper.innerHTML = posts.map(post => {
+        const profile = profileMap[post.user_id] || {};
+        const isOwner = currentUserId === post.user_id;
 
-        return `
-            <div class="bg-white border border-slate-200 rounded-[32px] overflow-hidden shadow-sm">
-                <div class="p-6">
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="flex items-center gap-3">
-                            <img src="${profile.avatar_url || '/IMG/Logo.jpeg'}" class="w-10 h-10 rounded-full border border-slate-100 object-cover">
-                            <div>
-                                <h4 class="text-xs font-black text-slate-800">${profile.full_name || 'Anonymous'}</h4>
-                                <p class="text-[9px] font-bold text-slate-400">${new Date(post.created_at).toLocaleDateString()}</p>
-                            </div>
-                        </div>
-                        ${isOwner ? `<button onclick="deleteLoaf(${post.id})" class="text-red-500"><i class="fa-solid fa-trash"></i></button>` : ''}
-                    </div>
-                    <p class="text-sm text-slate-700">${post.content}</p>
-                </div>
-            </div>
-        `;
-    }).join('');
+        return `
+            <div class="bg-white border border-slate-200 rounded-[32px] overflow-hidden shadow-sm">
+                <div class="p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-3">
+                            <img src="${profile.avatar_url || '/IMG/Logo.jpeg'}" class="w-10 h-10 rounded-full border border-slate-100 object-cover">
+                            <div>
+                                <h4 class="text-xs font-black text-slate-800">${profile.full_name || 'Anonymous'}</h4>
+                                <p class="text-[9px] font-bold text-slate-400">${new Date(post.created_at).toLocaleDateString()}</p>
+                            </div>
+                        </div>
+                        ${isOwner ? `<button onclick="deleteLoaf(${post.id})" class="text-red-500"><i class="fa-solid fa-trash"></i></button>` : ''}
+                    </div>
+                    <p class="text-sm text-slate-700">${post.content}</p>
+                </div>
+            </div>
+        `;
+    }).join('');
 }
 
 async function submitLoaf() {
-    const input = document.getElementById('postInput');
-    const content = input?.value?.trim();
-    if (!content) return;
+    const input = document.getElementById('postInput');
+    const content = input?.value?.trim();
+    if (!content) return;
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return alert("Login first");
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return alert("Login first");
 
-    const { error } = await supabase.from('posts').insert([{
-        user_id: user.id,
-        content: content,
-        title: "Loaf",
-        category: "General"
-    }]);
+    const { error } = await supabase.from('posts').insert([{
+        user_id: user.id,
+        content: content,
+        title: "Loaf",
+        category: "General"
+    }]);
 
-    if (error) {
-        console.error(error);
-        alert("Post failed: " + error.message);
-    } else {
-        input.value = '';
-        await renderFeed();
-        alert("Posted!");
-    }
+    if (error) {
+        console.error(error);
+        alert("Post failed: " + error.message);
+    } else {
+        input.value = '';
+        await renderFeed();
+        alert("Posted!");
+    }
 }
 
 
 window.deleteLoaf = async function(id) {
-    // Show custom yes/no modal
-    showDeleteConfirmModal(id);
+    // Show custom yes/no modal
+    showDeleteConfirmModal(id);
 };
 
 // New function: shows centered yes/no modal
 function showDeleteConfirmModal(postId) {
-    const modal = document.getElementById('globalModal');
-    if (!modal) {
-        if (confirm("Delete this loaf forever?")) {
-            performDelete(postId);
-        }
-        return;
-    }
+    const modal = document.getElementById('globalModal');
+    if (!modal) {
+        if (confirm("Delete this loaf forever?")) {
+            performDelete(postId);
+        }
+        return;
+    }
 
-    // Customize modal for delete confirmation
-    document.getElementById('modalTitle').textContent = "Delete Loaf";
-    document.getElementById('modalBody').innerHTML = `
-        Are you sure you want to delete this loaf?<br>
-        <small>This action cannot be undone.</small>
-    `;
-    document.getElementById('modalEmoji').textContent = '🗑️';
+    // Customize modal for delete confirmation
+    document.getElementById('modalTitle').textContent = "Delete Loaf";
+    document.getElementById('modalBody').innerHTML = `
+        Are you sure you want to delete this loaf?<br>
+        <small>This action cannot be undone.</small>
+    `;
+    document.getElementById('modalEmoji').textContent = '🗑️';
 
-    // Replace the single "Understood" button with Yes/No
-    const buttonContainer = document.querySelector('#globalModal button')?.parentElement;
-    if (buttonContainer) {
-        buttonContainer.innerHTML = `
-            <div class="flex gap-4">
-                <button onclick="closeModal()" class="flex-1 bg-slate-700 text-white py-4 rounded-2xl font-bold hover:bg-slate-600 transition">
-                    No, Cancel
-                </button>
-                <button onclick="performDelete(${postId}); closeModal()" class="flex-1 bg-red-600 text-white py-4 rounded-2xl font-bold hover:bg-red-700 transition">
-                    Yes, Delete
-                </button>
-            </div>
-        `;
-    }
+    // Replace the single "Understood" button with Yes/No
+    const buttonContainer = document.querySelector('#globalModal button')?.parentElement;
+    if (buttonContainer) {
+        buttonContainer.innerHTML = `
+            <div class="flex gap-4">
+                <button onclick="closeModal()" class="flex-1 bg-slate-700 text-white py-4 rounded-2xl font-bold hover:bg-slate-600 transition">
+                    No, Cancel
+                </button>
+                <button onclick="performDelete(${postId}); closeModal()" class="flex-1 bg-red-600 text-white py-4 rounded-2xl font-bold hover:bg-red-700 transition">
+                    Yes, Delete
+                </button>
+            </div>
+        `;
+    }
 
-    // Show the modal
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
-    document.body.style.overflow = 'hidden';
+    // Show the modal
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    document.body.style.overflow = 'hidden';
 }
 
 // The actual delete logic
 async function performDelete(id) {
-    const { error } = await supabase
-        .from('posts')
-        .delete()
-        .eq('id', id);
+    const { error } = await supabase
+        .from('posts')
+        .delete()
+        .eq('id', id);
 
-    if (error) {
-        console.error("Delete failed:", error);
-        window.showModal?.("Error", "Could not delete: " + error.message, false);
-    } else {
-        await renderFeed();
-        window.showModal?.("Deleted", "Loaf removed successfully.", true);
-    }
-}.
+    if (error) {
+        console.error("Delete failed:", error);
+        window.showModal?.("Error", "Could not delete: " + error.message, false);
+    } else {
+        await renderFeed();
+        window.showModal?.("Deleted", "Loaf removed successfully.", true);
+
+    }
+}
 
 // --- 3. UI, THEME & STATS ---
 function handlePostInput(el) {
