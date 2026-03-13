@@ -156,3 +156,17 @@ function updateFollowButtonUI(isFollowing) {
         btn.className = "px-6 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all bg-cyan-500 text-white";
     }
 }
+// Add this at the very top of users.js so all other functions can see it
+function showModalAlert(message) {
+    const modal = document.getElementById('alertModal');
+    const messageEl = document.getElementById('alertMessage');
+    
+    if (modal && messageEl) {
+        messageEl.innerText = message;
+        modal.classList.remove('hidden');
+        modal.classList.add('flex'); 
+    } else {
+        // Fallback if the HTML modal isn't on the page yet
+        alert(message);
+    }
+}
