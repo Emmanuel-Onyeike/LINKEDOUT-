@@ -36,6 +36,28 @@ async function loadFollowerCount(userId) {
         followerEl.innerText = count || 0;
     }
 }
+
+
+// --- NEW VIEW COUNT FUNCTION ---
+async function loadProfileViews(userId) {
+    // We fetch the 'views' column from the profiles table
+    const { data, error } = await supabase
+        .from('profiles')
+        .select('views')
+        .eq('id', userId)
+        .single();
+
+    if (error) {
+        console.error("Error fetching views:", error.message);
+        return;
+    }
+
+    // Update the UI
+    const viewEl = document.getElementById('viewCount');
+    if (viewEl) {
+        viewEl.innerText = data.views || 0;
+    }
+}
 // --- LOAD STATS: Fills in the numbers on your profile card ---
 async function loadDashboardStats(userId) {
     // Fetch profile data
