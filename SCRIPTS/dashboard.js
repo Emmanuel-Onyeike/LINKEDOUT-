@@ -228,48 +228,51 @@ function syncSidebarCommunities() {
 
 // --- 5. SUITES MODAL (perfect open/close) ---
 function toggleLinkedOutModal() {
-    const overlay = document.getElementById('linkedOutModalOverlay');
-    if (!overlay) return console.warn("Modal overlay not found");
+  const overlay = document.getElementById('linkedOutModalOverlay');
+  if (!overlay) {
+    console.error("Modal overlay not found");
+    return;
+  }
 
-    const content = document.getElementById('linkedOutDropdown');
-    if (!content) return console.warn("Modal content not found");
+  const content = document.getElementById('linkedOutDropdown');
+  if (!content) {
+    console.error("Modal content not found");
+    return;
+  }
 
-    const isOpen = !overlay.classList.contains('hidden');
+  if (overlay.classList.contains('hidden')) {
+    // Open - exactly like your working force test
+    overlay.classList.remove('hidden');
+    overlay.classList.add('flex');
+    overlay.style.opacity = '1';
+    content.classList.remove('scale-95', 'opacity-0');
+    content.classList.add('scale-100', 'opacity-100');
+    document.body.style.overflow = 'hidden';
+  } else {
+    // Close
+    overlay.style.opacity = '0';
+    content.classList.remove('scale-100', 'opacity-100');
+    content.classList.add('scale-95', 'opacity-0');
 
-    if (!isOpen) {
-        // Open
-        overlay.classList.remove('hidden');
-        overlay.classList.add('flex');
-        overlay.offsetHeight; // reflow
-
-        overlay.style.opacity = '1';
-        content.classList.remove('scale-95', 'opacity-0');
-        content.classList.add('scale-100', 'opacity-100');
-
-        document.body.style.overflow = 'hidden';
-    } else {
-        // Close
-        overlay.style.opacity = '0';
-        content.classList.remove('scale-100', 'opacity-100');
-        content.classList.add('scale-95', 'opacity-0');
-
-        setTimeout(() => {
-            overlay.classList.add('hidden');
-            overlay.classList.remove('flex');
-            document.body.style.overflow = '';
-        }, 320);
-    }
+    // Wait just long enough for fade-out
+    setTimeout(() => {
+      overlay.classList.add('hidden');
+      overlay.classList.remove('flex');
+      document.body.style.overflow = '';
+    }, 300);
+  }
 }
 
-// Close modal on outside click
+// Optional but recommended: close on outside click
 document.addEventListener('click', function(e) {
-    const overlay = document.getElementById('linkedOutModalOverlay');
-    if (!overlay || overlay.classList.contains('hidden')) return;
+  const overlay = document.getElementById('linkedOutModalOverlay');
+  if (!overlay || overlay.classList.contains('hidden')) return;
 
-    const content = document.getElementById('linkedOutDropdown');
-    if (!content) return;
+  const content = document.getElementById('linkedOutDropdown');
+  if (!content) return;
 
-    if (e.target === overlay || !content.contains(e.target)) {
-        toggleLinkedOutModal();
-    }
+  // Clicked outside content → close
+  if (e.target === overlay || !content.contains(e.target)) {
+    toggleLinkedOutModal();
+  }
 });
