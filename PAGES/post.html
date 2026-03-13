@@ -82,10 +82,11 @@
                     <button onclick="triggerAISubscribe()" class="w-10 h-10 rounded-full flex items-center justify-center text-slate-400 hover:bg-white hover:text-purple-500 hover:shadow-sm transition-all group">
                         <i class="fa-solid fa-wand-magic-sparkles text-lg group-hover:animate-pulse"></i>
                     </button>
+                     <span id="charCounter" class="text-[10px] font-black text-slate-300 uppercase tracking-widest">0 / 280</span>
                 </div>
 
-                <div class="flex items-center gap-6">
-                    <span id="charCounter" class="text-[10px] font-black text-slate-300 uppercase tracking-widest">0 / 280</span>
+                <div id="postActions" class="flex items-center gap-6">
+                   
                     <button onclick="handlePublish()" class="bg-slate-800 text-white px-10 py-3.5 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-cyan-600 hover:shadow-lg hover:shadow-cyan-200 transition-all active:scale-95">
                         Post
                     </button>
