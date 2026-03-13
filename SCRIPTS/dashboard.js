@@ -37,12 +37,15 @@ async function renderFeed() {
     const currentUserId = user ? user.id : null;
 
     const { data: posts, error } = await supabase
-        .from('posts')
-        .select(`
-            *,
-            profiles:user_id (full_name, avatar_url)
-        `)
-        .order('created_at', { ascending: false });
+  .from('posts')
+  .select(`
+    *,
+    profiles!posts_user_id_fkey (
+      full_name,
+      avatar_url
+    )
+  `)
+  .order('created_at', { ascending: false });
 
     if (error) {
         console.error("Feed Fetch Error:", error);
