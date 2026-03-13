@@ -497,3 +497,11 @@ function showPromotionModal(tierName) {
     `;
     document.body.appendChild(modal);
 }
+
+
+async function incrementPostView(postId) {
+    // We use a Remote Procedure Call (RPC) to be thread-safe
+    const { error } = await supabase.rpc('increment_post_views', { target_post_id: postId });
+    
+    if (error) console.error("View Count Error:", error.message);
+}
