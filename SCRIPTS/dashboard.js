@@ -546,101 +546,72 @@ async function incrementPostView(postId) {
 /** * SOCIAL INTERACTION ENGINE 
  * Isolated functions for Like, Repost, Share, and Commenting
  */
+async function updateDashboardStats() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { count } = await supabase.from('posts').select('*', { count: 'exact', head: true }).eq('user_id', user.id);
+    const countEl = document.getElementById('appCount');
+    if (countEl) countEl.innerText = count || 0;
+}
 
-/** * SOCIAL INTERACTION ENGINE - UPDATED 
- * Fixed: Database sync checks and error reporting
- */
+// --- SECTION 6: INTERACTION HANDLERS ---
 
-// --- LIKE HANDLER ---
 async function handleLike(postId, btn, alreadyLiked) {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return window.showModal("Auth Required", "Log in to like loafs.", false);
-
-    // 1. Optimistic UI Update (Fast response)
-    const icon = btn.querySelector('i');
-    const countSpan = btn.querySelector('span');
-    let currentCount = parseInt(countSpan.innerText);
+    if (!user) return;
 
     if (alreadyLiked) {
-        btn.classList.replace('text-pink-500', 'text-slate-400');
-        icon.classList.replace('fa-solid', 'fa-regular');
-        countSpan.innerText = Math.max(0, currentCount - 1);
-        
-        // 2. Database Sync
-        const { error } = await supabase.from('likes')
-            .delete()
-            .eq('post_id', postId)
-            .eq('user_id', user.id);
-            
-        if (error) {
-            console.error("Like Delete Error:", error.message);
-            window.showModal("Sync Error", "Could not remove like. Check console.", false);
-        }
+        await supabase.from('likes').delete().eq('post_id', postId).eq('user_id', user.id);
     } else {
-        btn.classList.replace('text-slate-400', 'text-pink-500');
-        icon.classList.replace('fa-regular', 'fa-solid');
-        countSpan.innerText = currentCount + 1;
-        
-        // 2. Database Sync
-        const { error } = await supabase.from('likes')
-            .insert([{ post_id: postId, user_id: user.id }]);
-            
-        if (error) {
-            console.error("Like Insert Error:", error.message);
-            window.showModal("Sync Error", "Could not save like. Ensure 'likes' table post_id is BIGINT.", false);
-        }
+        await supabase.from('likes').insert([{ post_id: postId, user_id: user.id }]);
     }
-    
-    // 3. Final Sync (Ensures counts are 100% accurate)
-    await renderFeed(); 
+    renderFeed();
 }
 
-// --- REPOST HANDLER ---
 async function handleRepost(postId, alreadyReposted) {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return window.showModal("Auth Required", "Log in to repost.", false);
-    
-    if (alreadyReposted) {
-        // Toggle: Remove repost if already exists
-        const { error } = await supabase.from('reposts')
-            .delete()
-            .eq('post_id', postId)
-            .eq('user_id', user.id);
-        if (!error) renderFeed();
-    } else {
-        const { error } = await supabase.from('reposts')
-            .insert([{ post_id: postId, user_id: user.id }]);
+    if (!user || alreadyReposted) return;
 
-        if (error) {
-            console.error("Repost Error:", error.message);
-            window.showModal("Terminal Error", "Check if 'reposts' table exists with BIGINT post_id.", false);
-        } else {
-            window.showModal("Transmitted", "Re-loafed to your timeline!", true);
-            renderFeed();
-        }
-    }
+    await supabase.from('reposts').insert([{ post_id: postId, user_id: user.id }]);
+    window.showModal("Success", "Loaf added to your timeline.", true);
+    renderFeed();
 }
 
-// --- SHARE HANDLER ---
 function handleShare(postId) {
-    // Generates a direct link to the specific post view
     const url = `${window.location.origin}/PAGES/post.html?id=${postId}`;
-    
-    if (navigator.share) {
-        navigator.share({
-            title: 'LinkedOut Loaf',
-            text: 'Check out this loaf on LinkedOut:',
-            url: url
-        }).catch(err => console.log("Share cancelled or failed", err));
-    } else {
-        navigator.clipboard.writeText(url).then(() => {
-            window.showModal("Terminal", "Direct link copied to clipboard.", true);
-        });
-    }
+    navigator.clipboard.writeText(url);
+    window.showModal("Terminal", "Post link copied to system clipboard.", true);
 }
 
-// --- OPEN COMMENTS ---
-function openComments(postId) {
-    // Navigate to post detail page
-    window.location.href = `/PAGES/post.html?id=${postId}`;
+// --- SECTION 7: DELETION ENGINE ---
+
+window.deleteLoaf = function(id) {
+    showDeleteConfirmModal(id);
+};
+
+function showDeleteConfirmModal(postId) {
+    const modal = document.getElementById('globalModal');
+    if (!modal) return;
+
+    document.getElementById('modalTitle').textContent = "Delete Loaf";
+    document.getElementById('modalBody').innerHTML = `This transmission will be permanently erased from the LinkedOut grid.`;
+    document.getElementById('modalEmoji').textContent = '🗑️';
+
+    const footer = modal.querySelector('.modal-footer') || modal.querySelector('.bg-white');
+    footer.innerHTML = `
+        <div class="flex flex-col gap-3 w-full mt-4">
+            <button onclick="performDelete(${postId}); closeModal()" class="w-full py-5 bg-red-600 text-white text-[10px] font-black uppercase rounded-2xl">Confirm Erase</button>
+            <button onclick="closeModal()" class="w-full py-5 bg-slate-50 text-slate-400 text-[10px] font-black uppercase rounded-2xl">Cancel</button>
+        </div>`;
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+async function performDelete(id) {
+    const { error } = await supabase.from('posts').delete().eq('id', id);
+    if (!error) {
+        await renderFeed();
+        updateDashboardStats();
+    }
 }
