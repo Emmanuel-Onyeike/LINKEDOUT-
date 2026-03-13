@@ -115,17 +115,32 @@ async function submitLoaf() {
 
 // Keep your other functions (toggleDarkMode, etc.) if you want
 // But for now this fixes posting + feed
-
 async function deleteLoaf(id) {
-    const { error } = await supabase.from('posts').delete().eq('id', id);
-    if (!error) {
-        renderFeed();
-        window.showModal?.("Scrubbed", "Transmission successfully removed from the grid.", true);
+    // Optional: ask for confirmation (using your showModal)
+    if (!confirm("Are you sure you want to delete this loaf?")) {
+        return;
+    }
+
+    // Or use your nice modal for confirmation
+    // window.showModal?.("Confirm Delete", "Delete this loaf forever?", true); // but confirm is simpler for now
+
+    const { error } = await supabase
+        .from('posts')
+        .delete()
+        .eq('id', id);
+
+    if (error) {
+        console.error("Delete failed:", error);
+        window.showModal?.("Error", "Could not delete: " + error.message, false);
+        alert("Delete failed: " + error.message);
     } else {
-        console.error("Delete error:", error);
+        // Refresh feed immediately
+        await renderFeed();
+        window.showModal?.("Deleted", "Loaf removed successfully.", true);
+        // Or simple alert
+        // alert("Loaf deleted!");
     }
 }
-
 // --- 3. UI, THEME & STATS ---
 function handlePostInput(el) {
     const postActions = document.getElementById('postActions');
