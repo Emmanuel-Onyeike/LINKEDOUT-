@@ -384,17 +384,24 @@ async function loadRecommendations() {
 // Run on load
 document.addEventListener('DOMContentLoaded', loadRecommendations);
 /**
- * DASHBOARD IDENTITY SYNC
+ * LINKEDOUT GLOBAL IDENTITY SYNC
+ * Covers: Nav (w-9), Start-a-Loaf (w-12), and Sidebar (w-16)
  */
+
 document.addEventListener('DOMContentLoaded', async () => {
-    await syncDashboardImages();
+    // Safety check for supabase initialization
+    if (typeof supabase === 'undefined') {
+        console.error("Supabase not loaded. Check script order in HTML.");
+        return;
+    }
+    await syncAllDashboardImages();
+    setupRealtimeSync();
 });
 
-async function syncDashboardImages() {
+async function syncAllDashboardImages() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return window.location.href = '/SCRIPTS/auth.js';
 
-    // Fetch the latest profile data
     const { data: profile } = await supabase
         .from('profiles')
         .select('avatar_url, full_name')
@@ -402,68 +409,42 @@ async function syncDashboardImages() {
         .single();
 
     if (profile && profile.avatar_url) {
-        // We add ?t=... to force the browser to ignore its cache and show the NEW photo
         const freshUrl = `${profile.avatar_url}?t=${Date.now()}`;
         
-        // Update the small Nav image
-        const navImg = document.getElementById('dashPfpNav');
-        if (navImg) navImg.src = freshUrl;
+        // List of every PFP ID we want to update
+        const pfpIds = ['dashPfpNav', 'dashPfp', 'dashPfpLarge'];
 
-        // Update the large Sidebar image
-        const largeImg = document.getElementById('dashPfpLarge');
-        if (largeImg) largeImg.src = freshUrl;
-        
-        // Bonus: Update the name if you have a dashName element
+        pfpIds.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.src = freshUrl;
+        });
+
+        // Update the name display if it exists
         const nameEl = document.getElementById('dashName');
         if (nameEl) nameEl.innerText = profile.full_name;
     }
 }
-// Listen for any changes to YOUR profile row in real-time
-supabase
-    .channel('dashboard_pfp_sync')
-    .on('postgres_changes', { 
-        event: 'UPDATE', 
-        schema: 'public', 
-        table: 'profiles' 
-    }, (payload) => {
-        // If the updated row is mine, refresh the images
-        if (payload.new.id === user.id) {
-            const freshUrl = `${payload.new.avatar_url}?t=${Date.now()}`;
-            if (document.getElementById('dashPfpNav')) document.getElementById('dashPfpNav').src = freshUrl;
-            if (document.getElementById('dashPfpLarge')) document.getElementById('dashPfpLarge').src = freshUrl;
-        }
-    })
-    .subscribe();
-/**
- * GLOBAL DASHBOARD PFP SYNC
- * Syncs all instances: Nav, Main, and Large
- */
-document.addEventListener('DOMContentLoaded', async () => {
-    await syncAllDashboardImages();
-});
 
-async function syncAllDashboardImages() {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return; // User isn't logged in, keep default Logo.jpeg
+function setupRealtimeSync() {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+        if (!user) return;
 
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('avatar_url')
-        .eq('id', user.id)
-        .single();
-
-    if (profile && profile.avatar_url) {
-        // Cache-buster ensures the new image is pulled, not the old memory
-        const freshUrl = `${profile.avatar_url}?t=${Date.now()}`;
-        
-        // Array of all potential PFP IDs on the dashboard
-        const pfpIds = ['dashPfpNav', 'dashPfp', 'dashPfpLarge'];
-
-        pfpIds.forEach(id => {
-            const imgElement = document.getElementById(id);
-            if (imgElement) {
-                imgElement.src = freshUrl;
-            }
-        });
-    }
+        supabase
+            .channel('global_pfp_sync')
+            .on('postgres_changes', { 
+                event: 'UPDATE', 
+                schema: 'public', 
+                table: 'profiles',
+                filter: `id=eq.${user.id}` // Only listen to YOUR changes
+            }, (payload) => {
+                const freshUrl = `${payload.new.avatar_url}?t=${Date.now()}`;
+                
+                // Update every PFP instance immediately without refresh
+                ['dashPfpNav', 'dashPfp', 'dashPfpLarge'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.src = freshUrl;
+                });
+            })
+            .subscribe();
+    });
 }
