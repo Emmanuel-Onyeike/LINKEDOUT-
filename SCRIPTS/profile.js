@@ -1,6 +1,6 @@
 /**
- * LINKEDOUT IDENTITY ENGINE v2
- * Integrated View/Edit/Sync with Supabase Storage
+ * LINKEDOUT IDENTITY ENGINE v2.2
+ * Final Path Fix & Auth Script Routing
  */
 
 let selectedFile = null;
@@ -9,10 +9,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     await fetchCurrentIdentity();
 });
 
-// 1. FETCH & RENDER DATA
 async function fetchCurrentIdentity() {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return window.location.href = '/PAGES/auth.html';
+    
+    // Redirect to your auth script if no user is found
+    if (!user) return window.location.href = '/SCRIPTS/auth.js';
 
     const { data: profile } = await supabase
         .from('profiles')
@@ -21,14 +22,13 @@ async function fetchCurrentIdentity() {
         .single();
 
     if (profile) {
-        // Update UI View State
         document.getElementById('dashName').innerText = profile.full_name || "New Loafer";
         document.getElementById('displayRole').innerText = profile.role || "Professional Loafer";
         
-        const pfpUrl = profile.avatar_url || '/IMG/Logo.jpeg';
+        // Cache-busting timestamp ensures the new image shows immediately
+        const pfpUrl = profile.avatar_url ? `${profile.avatar_url}?t=${Date.now()}` : '/IMG/Logo.jpeg';
         document.getElementById('displayPfp').src = pfpUrl;
 
-        // Pre-fill Edit Fields
         document.getElementById('editName').value = profile.full_name || "";
         document.getElementById('editRole').value = profile.role || "";
         
@@ -36,13 +36,12 @@ async function fetchCurrentIdentity() {
     }
 }
 
-// 2. TOGGLE LOGIC
+// TOGGLE UI MODES
 window.enableEditMode = function() {
     document.getElementById('viewState').classList.add('hidden');
     document.getElementById('editState').classList.remove('hidden');
     document.getElementById('actionControls').classList.remove('hidden');
-    document.getElementById('pfpUploadBtn').classList.remove('hidden');
-    document.getElementById('pfpUploadBtn').classList.add('flex');
+    document.getElementById('pfpUploadBtn').classList.replace('hidden', 'flex');
     document.getElementById('editBtn').classList.add('hidden');
 };
 
@@ -50,65 +49,54 @@ window.cancelEdit = function() {
     document.getElementById('viewState').classList.remove('hidden');
     document.getElementById('editState').classList.add('hidden');
     document.getElementById('actionControls').classList.add('hidden');
-    document.getElementById('pfpUploadBtn').classList.add('hidden');
-    document.getElementById('pfpUploadBtn').classList.remove('flex');
+    document.getElementById('pfpUploadBtn').classList.replace('flex', 'hidden');
     document.getElementById('editBtn').classList.remove('hidden');
-    selectedFile = null; // Clear unsaved file
+    selectedFile = null;
 };
 
-// 3. IMAGE PREVIEW & HANDLING
+// PREVIEW SELECTION
 window.handleFileInput = function(event) {
     selectedFile = event.target.files[0];
     if (!selectedFile) return;
 
     const reader = new FileReader();
-    reader.onload = function() {
-        document.getElementById('displayPfp').src = reader.result;
-    };
+    reader.onload = (e) => document.getElementById('displayPfp').src = e.target.result;
     reader.readAsDataURL(selectedFile);
 };
 
-// 4. THE MASTER SAVE FUNCTION
+// MASTER SYNC FUNCTION
 window.saveIdentity = async function() {
     const overlay = document.getElementById('loadingOverlay');
     const newName = document.getElementById('editName').value.trim();
     const newRole = document.getElementById('editRole').value.trim();
 
-    if (!newName) return alert("A name is required to broadcast your signal.");
+    if (!newName) return alert("Identity requires a name.");
 
-    overlay.classList.remove('hidden');
-    overlay.classList.add('flex');
+    overlay.classList.replace('hidden', 'flex');
 
     const { data: { user } } = await supabase.auth.getUser();
-    let finalAvatarUrl = document.getElementById('displayPfp').src;
+    let finalAvatarUrl = document.getElementById('displayPfp').src.split('?')[0];
 
-    // --- STORAGE UPLOAD (Fixed Path) ---
+    // --- STORAGE UPLOAD (DIRECT ROOT) ---
     if (selectedFile) {
         const fileExt = selectedFile.name.split('.').pop();
         const fileName = `${user.id}.${fileExt}`; 
 
-        const { data: uploadData, error: uploadError } = await supabase.storage
+        const { error: uploadError } = await supabase.storage
             .from('avatars')
-            .upload(fileName, selectedFile, {
-                cacheControl: '3600',
-                upsert: true 
-            });
+            .upload(fileName, selectedFile, { upsert: true });
 
         if (uploadError) {
-            overlay.classList.add('hidden');
-            overlay.classList.remove('flex');
+            overlay.classList.replace('flex', 'hidden');
             console.error("Storage Error:", uploadError);
             return alert("PFP Sync Failed: " + uploadError.message);
         }
 
-        const { data: publicUrlData } = supabase.storage
-            .from('avatars')
-            .getPublicUrl(fileName);
-        
+        const { data: publicUrlData } = supabase.storage.from('avatars').getPublicUrl(fileName);
         finalAvatarUrl = publicUrlData.publicUrl;
     }
 
-    // --- PROFILE UPDATE ---
+    // --- PROFILES TABLE SYNC ---
     const { error: profileError } = await supabase
         .from('profiles')
         .upsert({
@@ -119,14 +107,12 @@ window.saveIdentity = async function() {
             updated_at: new Date()
         });
 
-    overlay.classList.add('hidden');
-    overlay.classList.remove('flex');
+    overlay.classList.replace('flex', 'hidden');
 
     if (profileError) {
-        alert("Identity Sync Failed: " + profileError.message);
+        alert("Sync Failed: " + profileError.message);
     } else {
-        document.getElementById('successModal').classList.remove('hidden');
-        document.getElementById('successModal').classList.add('flex');
+        document.getElementById('successModal').classList.replace('hidden', 'flex');
         selectedFile = null;
     }
 };
