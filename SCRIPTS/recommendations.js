@@ -127,16 +127,20 @@ function setupSearch() {
         // ... Render results similar to loadUsers
     };
 }
-function renderGrid(users) {
+function renderUsers(users) {
     const container = document.getElementById('recommendationContainer');
     
+    // Check if container exists before trying to fill it
+    if (!container) return;
+
     container.innerHTML = users.map(user => `
         <div onclick="window.location.href='/PAGES/users.html?id=${user.id}'" 
-             class="bg-white border border-slate-100 p-5 rounded-[30px] flex items-center justify-between group hover:border-cyan-500 transition-all cursor-pointer shadow-sm hover:shadow-md">
+             class="w-full bg-white border border-slate-100 p-6 rounded-[30px] flex items-center justify-between group hover:border-cyan-500 transition-all cursor-pointer mb-4 shadow-sm">
             
             <div class="flex items-center gap-4">
                 <img src="${user.avatar_url || '/IMG/Logo.jpeg'}" 
-                     class="w-12 h-12 rounded-2xl object-cover border-2 border-white">
+                     class="w-12 h-12 rounded-2xl object-cover border-2 border-white shadow-sm">
+                
                 <div>
                     <h4 class="text-[11px] font-black uppercase text-slate-800 tracking-tight">${user.full_name}</h4>
                     <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">${user.role || 'Professional Loafer'}</p>
