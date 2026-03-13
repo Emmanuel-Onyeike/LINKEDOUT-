@@ -33,10 +33,26 @@ async function renderFeed() {
         }
         return;
     }
-
-    if (!posts || posts.length === 0) {
+if (!posts || posts.length === 0) {
         if (placeholder) {
-            placeholder.innerHTML = '<p class="text-[10px] text-center py-8 font-bold text-slate-400 uppercase tracking-[0.2em] max-w-[200px] leading-relaxed">No loafs yet. Be the first!</p>';
+            placeholder.innerHTML = `
+                <div class="flex flex-col items-center justify-center py-20 px-6 animate-in fade-in duration-700">
+                    <div class="w-20 h-20 bg-white border border-slate-100 rounded-[32px] flex items-center justify-center shadow-sm mb-6">
+                        <i class="fa-solid fa-mug-hot text-slate-200 text-2xl"></i>
+                    </div>
+                    
+                    <h3 class="text-[11px] font-black text-slate-800 uppercase tracking-[0.3em] mb-2">
+                        Grid is Empty
+                    </h3>
+                    <p class="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] max-w-[220px] leading-relaxed text-center">
+                        No loafs detected in the wild. Start the movement.
+                    </p>
+
+                    <div class="mt-8 opacity-20">
+                        <div class="w-1 h-12 bg-gradient-to-b from-slate-400 to-transparent rounded-full"></div>
+                    </div>
+                </div>
+            `;
             placeholder.style.display = 'block';
         }
         return;
