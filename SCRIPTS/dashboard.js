@@ -434,3 +434,36 @@ supabase
         }
     })
     .subscribe();
+/**
+ * GLOBAL DASHBOARD PFP SYNC
+ * Syncs all instances: Nav, Main, and Large
+ */
+document.addEventListener('DOMContentLoaded', async () => {
+    await syncAllDashboardImages();
+});
+
+async function syncAllDashboardImages() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return; // User isn't logged in, keep default Logo.jpeg
+
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('avatar_url')
+        .eq('id', user.id)
+        .single();
+
+    if (profile && profile.avatar_url) {
+        // Cache-buster ensures the new image is pulled, not the old memory
+        const freshUrl = `${profile.avatar_url}?t=${Date.now()}`;
+        
+        // Array of all potential PFP IDs on the dashboard
+        const pfpIds = ['dashPfpNav', 'dashPfp', 'dashPfpLarge'];
+
+        pfpIds.forEach(id => {
+            const imgElement = document.getElementById(id);
+            if (imgElement) {
+                imgElement.src = freshUrl;
+            }
+        });
+    }
+}
