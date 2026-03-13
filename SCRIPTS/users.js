@@ -1,3 +1,18 @@
+// --- UTILS: GLOBAL ALERT ---
+function showModalAlert(message) {
+    const modal = document.getElementById('alertModal');
+    const messageEl = document.getElementById('alertMessage');
+    
+    if (modal && messageEl) {
+        messageEl.innerText = message;
+        modal.classList.remove('hidden');
+        modal.classList.add('flex'); 
+    } else {
+        alert(message);
+    }
+}
+
+// --- INITIALIZATION ---
 document.addEventListener('DOMContentLoaded', async () => {
     const nameDisplay = document.getElementById('userFullName');
     if (!nameDisplay) return; 
@@ -10,8 +25,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
+    // Load everything for the profile
     await loadUserProfile(userId);
     checkInitialFollowStatus(userId);
+    loadUserLoafs(userId); // Fetches the user's posts
 });
 
 // --- BACKGROUND NOTIFICATION ---
@@ -32,7 +49,7 @@ async function createFollowNotification(myId, theirId) {
     }
 }
 
-// --- PROFILE LOADING ---
+// --- PROFILE DATA ---
 async function loadUserProfile(userId) {
     try {
         const { data: profile, error } = await supabase
@@ -51,33 +68,81 @@ async function loadUserProfile(userId) {
         document.getElementById('userRole').innerText = profile.role || 'Professional Loafer';
         document.getElementById('userAvatar').src = profile.avatar_url || '/IMG/Logo.jpeg';
 
-        // Load both Followers and Following counts
         await loadProfileStats(userId);
     } catch (err) {
         console.error("Profile Load Error:", err.message);
     }
 }
 
-// --- STATS REFRESH (Fixed for both Followers & Following) ---
+// --- STATS REFRESH ---
 async function loadProfileStats(userId) {
-    // 1. Get Followers (People following THIS user)
     const { count: followers } = await supabase
         .from('follows')
         .select('*', { count: 'exact', head: true })
         .eq('following_id', userId);
 
-    // 2. Get Following (People THIS user follows)
     const { count: following } = await supabase
         .from('follows')
         .select('*', { count: 'exact', head: true })
         .eq('follower_id', userId);
 
-    // Update UI Elements
     const followerEl = document.getElementById('statFollowers');
     const followingEl = document.getElementById('statFollowing');
 
     if (followerEl) followerEl.innerText = followers || 0;
     if (followingEl) followingEl.innerText = following || 0;
+}
+
+// --- LOAD USER LOAFS (POSTS) ---
+async function loadUserLoafs(userId) {
+    const streamContainer = document.getElementById('userLoafStream');
+    
+    try {
+        const { data: posts, error } = await supabase
+            .from('posts')
+            .select(`*, profiles (full_name, avatar_url)`)
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        // Update counts in UI
+        const statLoafs = document.getElementById('statLoafs');
+        const badge = document.getElementById('loafCountBadge');
+        if (statLoafs) statLoafs.innerText = posts.length;
+        if (badge) badge.innerText = `${posts.length} POSTS`;
+
+        streamContainer.innerHTML = ''; // Clear loading spinner
+
+        if (posts.length === 0) {
+            streamContainer.innerHTML = `
+                <div class="py-12 text-center opacity-50">
+                    <p class="text-[10px] font-black uppercase tracking-widest">Zero transmissions found.</p>
+                </div>`;
+            return;
+        }
+
+        posts.forEach(post => {
+            const postDate = new Date(post.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            streamContainer.innerHTML += `
+                <div class="bg-white border border-slate-100 p-6 rounded-[2rem] transition-all hover:shadow-xl hover:shadow-blue-500/5">
+                    <div class="flex items-center gap-3 mb-4">
+                        <img src="${post.profiles.avatar_url || '/IMG/Logo.jpeg'}" class="w-8 h-8 rounded-full object-cover">
+                        <div>
+                            <h4 class="text-[10px] font-black uppercase">${post.profiles.full_name}</h4>
+                            <p class="text-[8px] font-bold text-slate-400">${postDate}</p>
+                        </div>
+                    </div>
+                    <p class="text-sm text-slate-600 leading-relaxed pl-2 border-l-2 border-slate-50">${post.content}</p>
+                    <div class="mt-6 flex gap-4 text-slate-400">
+                         <i class="fa-regular fa-heart text-xs"></i>
+                         <i class="fa-regular fa-comment text-xs"></i>
+                    </div>
+                </div>`;
+        });
+    } catch (err) {
+        console.error("Loaf Stream Error:", err);
+    }
 }
 
 // --- FOLLOW ACTION ---
@@ -109,7 +174,6 @@ async function handleFollowAction() {
             showModalAlert("ACTION FAILED");
         } else {
             showModalAlert("UNFOLLOWED");
-            // Refresh counts for the profile owner
             loadProfileStats(targetUserId); 
         }
     } else {
@@ -123,7 +187,6 @@ async function handleFollowAction() {
             showModalAlert("FOLLOW FAILED");
         } else {
             showModalAlert("FOLLOWED SUCCESSFULLY");
-            // Refresh counts for the profile owner
             loadProfileStats(targetUserId);
             createFollowNotification(currentUser.id, targetUserId);
         }
@@ -154,19 +217,5 @@ function updateFollowButtonUI(isFollowing) {
     } else {
         btn.innerHTML = '<i class="fa-solid fa-user-plus mr-2"></i> FOLLOW';
         btn.className = "px-6 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all bg-cyan-500 text-white";
-    }
-}
-// Add this at the very top of users.js so all other functions can see it
-function showModalAlert(message) {
-    const modal = document.getElementById('alertModal');
-    const messageEl = document.getElementById('alertMessage');
-    
-    if (modal && messageEl) {
-        messageEl.innerText = message;
-        modal.classList.remove('hidden');
-        modal.classList.add('flex'); 
-    } else {
-        // Fallback if the HTML modal isn't on the page yet
-        alert(message);
     }
 }
