@@ -36,72 +36,81 @@ async function renderFeed() {
     const { data: { user } } = await supabase.auth.getUser();
     const currentUserId = user ? user.id : null;
 
-   const { data: posts, error } = await supabase
-    .from('posts')
-    .select(`
-      *,
-      profiles!posts_user_id_fkey (
-        full_name,
-        avatar_url
-      )
-    `)
-    .order('created_at', { ascending: false });
+    // Step 1: Get all posts
+    const { data: posts, error: postError } = await supabase
+        .from('posts')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-  if (error) {
-    console.error("Full error:", error);
-    // Show better message
-    if (placeholder) {
-      placeholder.innerHTML = `<p class="text-red-500 text-center py-8">
-        Feed load failed.<br>
-        Error: ${error.message || 'Unknown'}<br>
-        (Code: ${error.code || 'N/A'})<br>
-        Try refreshing or check console.
-      </p>`;
-      placeholder.style.display = 'block';
+    if (postError) {
+        console.error("Posts fetch error:", postError);
+        placeholder.innerHTML = `<p class="text-red-500 text-center py-8">Could not load posts.<br>${postError.message}</p>`;
+        placeholder.style.display = 'block';
+        return;
     }
-    return;
-  }
 
-    if (posts && posts.length > 0) {
-        if (placeholder) placeholder.style.display = 'none';
+    if (!posts || posts.length === 0) {
+        placeholder.innerHTML = '<p class="text-slate-500 text-center py-8">No loafs yet.<br>Be the first to post!</p>';
+        placeholder.style.display = 'block';
+        return;
+    }
 
-        let postWrapper = document.getElementById('postWrapper');
-        if (!postWrapper) {
-            postWrapper = document.createElement('div');
-            postWrapper.id = 'postWrapper';
-            postWrapper.className = 'space-y-4';
-            feedContainer.appendChild(postWrapper);
-        }
+    // Step 2: Get profiles for all users who posted
+    const userIds = [...new Set(posts.map(p => p.user_id))];
+    const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, full_name, avatar_url')
+        .in('id', userIds);
 
-        postWrapper.innerHTML = posts.map(post => {
-            const isOwner = currentUserId === post.user_id;
-            return `
-                <div class="bg-white border border-slate-200 rounded-[32px] overflow-hidden shadow-sm animate-modal-pop">
-                    <div class="p-6">
-                        <div class="flex items-center justify-between mb-4">
-                            <div class="flex items-center gap-3">
-                                <img src="${post.profiles?.avatar_url || '/IMG/Logo.jpeg'}" class="w-10 h-10 rounded-full border border-slate-100 object-cover">
-                                <div>
-                                    <h4 class="text-xs font-black text-slate-800 uppercase tracking-tighter">${post.profiles?.full_name || 'Anonymous Loafer'}</h4>
-                                    <p class="text-[9px] font-bold text-slate-400 uppercase">${new Date(post.created_at).toLocaleDateString()}</p>
-                                </div>
+    // Step 3: Merge profiles into posts
+    const profileMap = {};
+    profiles?.forEach(p => profileMap[p.id] = p);
+
+    // Step 4: Render
+    if (placeholder) placeholder.style.display = 'none';
+
+    let postWrapper = document.getElementById('postWrapper');
+    if (!postWrapper) {
+        postWrapper = document.createElement('div');
+        postWrapper.id = 'postWrapper';
+        postWrapper.className = 'space-y-4';
+        feedContainer.appendChild(postWrapper);
+    }
+
+    postWrapper.innerHTML = posts.map(post => {
+        const profile = profileMap[post.user_id] || {};
+        const isOwner = currentUserId === post.user_id;
+
+        return `
+            <div class="bg-white border border-slate-200 rounded-[32px] overflow-hidden shadow-sm">
+                <div class="p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-3">
+                            <img src="${profile.avatar_url || '/IMG/Logo.jpeg'}" 
+                                 class="w-10 h-10 rounded-full border border-slate-100 object-cover">
+                            <div>
+                                <h4 class="text-xs font-black text-slate-800">${profile.full_name || 'Anonymous Loafer'}</h4>
+                                <p class="text-[9px] font-bold text-slate-400">${new Date(post.created_at).toLocaleDateString()}</p>
                             </div>
-                            ${isOwner ? `
-                                <button onclick="deleteLoaf(${post.id})" class="text-slate-300 hover:text-red-500 transition">
-                                    <i class="fa-solid fa-trash-can"></i>
-                                </button>
-                            ` : ''}
                         </div>
-                        <p class="text-sm text-slate-700 leading-relaxed font-medium mb-4">${post.content}</p>
-                        <div class="flex items-center gap-6 pt-2 border-t border-slate-50">
-                            <button onclick="toggleLike(this)" class="flex items-center gap-2 text-slate-400 hover:text-cyan-500 transition">
-                                <i class="fa-regular fa-heart"></i> <span class="text-[10px] font-black uppercase">Appreciate</span>
+                        ${isOwner ? `
+                            <button onclick="deleteLoaf(${post.id})" class="text-slate-300 hover:text-red-500">
+                                <i class="fa-solid fa-trash-can"></i>
                             </button>
-                        </div>
+                        ` : ''}
                     </div>
+                    <p class="text-sm text-slate-700 leading-relaxed mb-4">${post.content}</p>
+                    <button onclick="toggleLike(this)" class="flex items-center gap-2 text-slate-400 hover:text-cyan-500">
+                        <i class="fa-regular fa-heart"></i> 
+                        <span class="text-[10px] font-black uppercase">Appreciate</span>
+                    </button>
                 </div>
-            `;
-        }).join('');
+            </div>
+        `;
+    }).join('');
+}
+
+
     } else {
         if (placeholder) {
             placeholder.innerHTML = '<p class="text-slate-500 text-center py-8">No loafs yet. Be the first!</p>';
