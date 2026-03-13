@@ -448,3 +448,52 @@ function setupRealtimeSync() {
             .subscribe();
     });
 }
+document.addEventListener('DOMContentLoaded', async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    syncIdentity(user.id);
+    checkPromotion(user.id);
+});
+
+async function syncIdentity(userId) {
+    const { data: profile } = await supabase.from('profiles').select('*').eq('id', userId).single();
+    if (!profile) return;
+
+    const freshUrl = `${profile.avatar_url}?t=${Date.now()}`;
+    ['dashPfpNav', 'dashPfp', 'dashPfpLarge'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.src = freshUrl;
+    });
+
+    // Update Follower Stats
+    const { count } = await supabase.from('follows').select('*', { count: 'exact', head: true }).eq('following_id', userId);
+    if (document.getElementById('followerCount')) document.getElementById('followerCount').innerText = count || 0;
+}
+
+async function checkPromotion(userId) {
+    const { data: tierData } = await supabase.from('user_tiers').select('*').eq('id', userId).single();
+    
+    // Check if current days_old triggers a message (e.g., exactly 11, 21, or 31)
+    const milestones = { 11: 'Tier 2', 21: 'Tier 3', 41: 'Unverified' };
+    
+    if (milestones[tierData.days_old]) {
+        showPromotionModal(milestones[tierData.days_old]);
+    }
+}
+
+function showPromotionModal(tierName) {
+    const modal = document.createElement('div');
+    modal.className = "fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-6";
+    modal.innerHTML = `
+        <div class="bg-white dark:bg-slate-900 p-8 rounded-[40px] shadow-2xl text-center max-w-xs animate-in zoom-in duration-300">
+            <div class="w-16 h-16 bg-cyan-500/10 text-cyan-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fa-solid fa-bolt text-2xl"></i>
+            </div>
+            <h3 class="text-xs font-black uppercase tracking-widest dark:text-white">Promotion Detected</h3>
+            <p class="text-[10px] text-slate-500 mt-2 mb-6">Your loyalty has earned you a spot in <span class="text-cyan-500 font-bold">${tierName}</span>.</p>
+            <button onclick="this.parentElement.parentElement.remove()" class="w-full py-3 bg-cyan-500 text-white rounded-2xl text-[10px] font-black uppercase">Dismiss Signal</button>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
