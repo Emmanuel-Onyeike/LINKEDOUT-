@@ -129,17 +129,21 @@ function setupSearch() {
 }
 function renderGrid(users) {
     const container = document.getElementById('recommendationContainer');
+    
     container.innerHTML = users.map(user => `
         <div onclick="window.location.href='/PAGES/users.html?id=${user.id}'" 
-             class="bg-white border border-slate-100 p-5 rounded-[30px] flex items-center justify-between group hover:border-cyan-500 transition-all cursor-pointer">
+             class="bg-white border border-slate-100 p-5 rounded-[30px] flex items-center justify-between group hover:border-cyan-500 transition-all cursor-pointer shadow-sm hover:shadow-md">
+            
             <div class="flex items-center gap-4">
-                <img src="${user.avatar_url || '/IMG/Logo.jpeg'}" class="w-12 h-12 rounded-2xl object-cover shadow-sm">
+                <img src="${user.avatar_url || '/IMG/Logo.jpeg'}" 
+                     class="w-12 h-12 rounded-2xl object-cover border-2 border-white">
                 <div>
-                    <h4 class="text-[11px] font-black uppercase text-slate-800">${user.full_name}</h4>
-                    <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">${user.days_old} Days Active</p>
+                    <h4 class="text-[11px] font-black uppercase text-slate-800 tracking-tight">${user.full_name}</h4>
+                    <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">${user.role || 'Professional Loafer'}</p>
                 </div>
             </div>
-            <div class="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-cyan-500 group-hover:text-white transition-all">
+
+            <div class="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-cyan-500 group-hover:text-white transition-all">
                 <i class="fa-solid fa-chevron-right text-[10px]"></i>
             </div>
         </div>
