@@ -132,24 +132,63 @@ async function renderFeed() {
 
 // --- 2. THEME & UI UTILITIES ---
 
+/**
+ * LINKEDOUT DROPDOWN MODAL
+ * Targeted fix for the profile/settings dropdown
+ */
 function toggleLinkedOutModal() {
     const overlay = document.getElementById('linkedOutModalOverlay');
-    if (!overlay) return;
-    if (overlay.classList.contains('hidden')) {
+    const dropdown = document.getElementById('linkedOutDropdown');
+    
+    if (!overlay) {
+        console.error("Critical Error: 'linkedOutModalOverlay' missing from HTML");
+        return;
+    }
+
+    const isHidden = overlay.classList.contains('hidden');
+
+    if (isHidden) {
+        // --- OPENING ---
         overlay.classList.remove('hidden');
-        overlay.classList.add('flex');
-        overlay.style.opacity = '1';
-        document.body.style.overflow = 'hidden';
+        overlay.classList.add('flex'); // Centering
+        
+        // Small timeout to allow the 'hidden' removal to register before animating
+        setTimeout(() => {
+            overlay.style.opacity = '1';
+            if (dropdown) {
+                dropdown.classList.remove('scale-95', 'opacity-0');
+                dropdown.classList.add('scale-100', 'opacity-100');
+            }
+        }, 10);
+
+        document.body.style.overflow = 'hidden'; // Lock background
     } else {
+        // --- CLOSING ---
         overlay.style.opacity = '0';
+        if (dropdown) {
+            dropdown.classList.remove('scale-100', 'opacity-100');
+            dropdown.classList.add('scale-95', 'opacity-0');
+        }
+
+        // Wait for the CSS transition (300ms) before hiding completely
         setTimeout(() => {
             overlay.classList.add('hidden');
             overlay.classList.remove('flex');
-            document.body.style.overflow = '';
+            document.body.style.overflow = ''; // Unlock background
         }, 300);
     }
 }
 
+// Close dropdown if user clicks the dark backdrop area
+document.addEventListener('click', (e) => {
+    const overlay = document.getElementById('linkedOutModalOverlay');
+    const dropdown = document.getElementById('linkedOutDropdown');
+    
+    // If user clicked the overlay itself (not the white box inside)
+    if (e.target === overlay) {
+        toggleLinkedOutModal();
+    }
+});
 function checkSavedTheme() {
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme === 'dark') {
