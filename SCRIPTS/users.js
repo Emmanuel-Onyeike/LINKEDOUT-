@@ -52,3 +52,43 @@ async function loadUserProfile(userId) {
         console.error("Critical Profile Error:", err.message);
     }
 }
+async function toggleFollow(targetUserId) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return showModalAlert("Please sign in to follow others.");
+    if (user.id === targetUserId) return showModalAlert("You cannot follow yourself!");
+
+    // 1. Check if already following
+    const { data: existingFollow } = await supabase
+        .from('follows')
+        .select('*')
+        .eq('follower_id', user.id)
+        .eq('following_id', targetUserId)
+        .single();
+
+    if (existingFollow) {
+        // --- UNFOLLOW LOGIC ---
+        const { error } = await supabase
+            .from('follows')
+            .delete()
+            .eq('follower_id', user.id)
+            .eq('following_id', targetUserId);
+
+        if (!error) {
+            showModalAlert("Unfollowed successfully.");
+            // Refresh counts if on dashboard/profile
+            if (typeof loadFollowerCount === 'function') loadFollowerCount(targetUserId);
+        }
+    } else {
+        // --- FOLLOW LOGIC ---
+        const { error } = await supabase
+            .from('follows')
+            .insert([{ follower_id: user.id, following_id: targetUserId }]);
+
+        if (!error) {
+            // 2. CREATE NOTIFICATION
+            await createFollowNotification(user.id, targetUserId);
+            showModalAlert("Followed successfully!");
+            if (typeof loadFollowerCount === 'function') loadFollowerCount(targetUserId);
+        }
+    }
+}
