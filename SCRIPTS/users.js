@@ -92,3 +92,69 @@ async function toggleFollow(targetUserId) {
         }
     }
 }
+// This function runs when someone clicks the Follow button on users.html
+async function handleFollowAction() {
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+    
+    // 1. Get the ID of the profile being viewed from the URL
+    const params = new URLSearchParams(window.location.search);
+    const targetUserId = params.get('id');
+
+    if (!currentUser) return showModalAlert("LOG IN TO FOLLOW THIS LOAFER");
+    if (currentUser.id === targetUserId) return showModalAlert("YOU CANNOT FOLLOW YOURSELF");
+
+    // 2. Check if already following
+    const { data: existingFollow } = await supabase
+        .from('follows')
+        .select('*')
+        .eq('follower_id', currentUser.id)
+        .eq('following_id', targetUserId)
+        .single();
+
+    const followBtn = document.getElementById('followBtn');
+
+    if (existingFollow) {
+        // --- UNFOLLOW ---
+        const { error } = await supabase
+            .from('follows')
+            .delete()
+            .eq('follower_id', currentUser.id)
+            .eq('following_id', targetUserId);
+
+        if (!error) {
+            showModalAlert("UNFOLLOWED SUCCESSFULLY");
+            updateFollowButtonUI(false);
+            // Refresh the follower count on the page
+            loadProfileStats(targetUserId); 
+        }
+    } else {
+        // --- FOLLOW ---
+        const { error } = await supabase
+            .from('follows')
+            .insert([{ follower_id: currentUser.id, following_id: targetUserId }]);
+
+        if (!error) {
+            // Send the notification alert
+            await createFollowNotification(currentUser.id, targetUserId);
+            showModalAlert("FOLLOWED SUCCESSFULLY");
+            updateFollowButtonUI(true);
+            loadProfileStats(targetUserId);
+        }
+    }
+}
+
+// Simple function to change the button look instantly
+function updateFollowButtonUI(isFollowing) {
+    const btn = document.getElementById('followBtn');
+    if (!btn) return;
+    
+    if (isFollowing) {
+        btn.innerHTML = '<i class="fa-solid fa-user-check mr-2"></i> FOLLOWING';
+        btn.classList.add('bg-slate-100', 'text-slate-600');
+        btn.classList.remove('bg-cyan-500', 'text-white');
+    } else {
+        btn.innerHTML = '<i class="fa-solid fa-user-plus mr-2"></i> FOLLOW';
+        btn.classList.add('bg-cyan-500', 'text-white');
+        btn.classList.remove('bg-slate-100', 'text-slate-600');
+    }
+}
