@@ -72,3 +72,58 @@ async function loadRecommendations() {
 
 // Run on load
 document.addEventListener('DOMContentLoaded', loadRecommendations);
+document.addEventListener('DOMContentLoaded', () => {
+    loadUsers('tier1'); 
+    setupFilters();
+    setupSearch();
+});
+
+async function loadUsers(tier) {
+    const container = document.getElementById('recommendationContainer');
+    container.innerHTML = `<div class="col-span-full py-20 text-center animate-pulse text-slate-400 font-black uppercase text-[10px]">Scanning Frequencies...</div>`;
+
+    const { data: users, error } = await supabase
+        .from('user_tiers')
+        .select('*')
+        .eq('current_tier', tier);
+
+    if (error || !users?.length) {
+        container.innerHTML = `<div class="col-span-full py-20 text-center text-slate-400 font-black uppercase text-[10px]">No Loafers Detected in ${tier}</div>`;
+        return;
+    }
+
+    container.innerHTML = users.map(user => `
+        <div class="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-5 rounded-[30px] flex items-center justify-between group transition-all hover:border-cyan-500">
+            <div class="flex items-center gap-4">
+                <img src="${user.avatar_url || '/IMG/Logo.jpeg'}" class="w-12 h-12 rounded-2xl object-cover">
+                <div>
+                    <h4 class="text-[11px] font-black text-slate-800 dark:text-slate-100 uppercase">${user.full_name}</h4>
+                    <p class="text-[9px] font-bold text-slate-400 uppercase">${user.role || 'Loafer'}</p>
+                </div>
+            </div>
+            <button class="w-8 h-8 rounded-full border border-slate-100 dark:border-slate-800 flex items-center justify-center text-slate-400 hover:bg-cyan-500 hover:text-white transition-all">
+                <i class="fa-solid fa-plus text-[10px]"></i>
+            </button>
+        </div>
+    `).join('');
+}
+
+function setupFilters() {
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.onclick = () => {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('bg-cyan-500', 'text-white'));
+            btn.classList.add('bg-cyan-500', 'text-white');
+            loadUsers(btn.dataset.filter);
+        };
+    });
+}
+
+function setupSearch() {
+    document.getElementById('userSearch').oninput = async (e) => {
+        const query = e.target.value.toLowerCase();
+        if(query.length < 2) return;
+        
+        const { data } = await supabase.from('user_tiers').select('*').ilike('full_name', `%${query}%`);
+        // ... Render results similar to loadUsers
+    };
+}
