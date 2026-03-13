@@ -112,35 +112,39 @@ async function submitLoaf() {
 }
 
 
-
-// Keep your other functions (toggleDarkMode, etc.) if you want
-// But for now this fixes posting + feed
-async function deleteLoaf(id) {
-    // Optional: ask for confirmation (using your showModal)
-    if (!confirm("Are you sure you want to delete this loaf?")) {
+window.deleteLoaf = async function(id) {
+    // Show native confirm (simple & reliable)
+    if (!confirm("Delete this loaf forever? This cannot be undone.")) {
         return;
     }
 
-    // Or use your nice modal for confirmation
-    // window.showModal?.("Confirm Delete", "Delete this loaf forever?", true); // but confirm is simpler for now
+    try {
+        const { error } = await supabase
+            .from('posts')
+            .delete()
+            .eq('id', id);
 
-    const { error } = await supabase
-        .from('posts')
-        .delete()
-        .eq('id', id);
+        if (error) throw error;
 
-    if (error) {
-        console.error("Delete failed:", error);
-        window.showModal?.("Error", "Could not delete: " + error.message, false);
-        alert("Delete failed: " + error.message);
-    } else {
-        // Refresh feed immediately
+        // Success: refresh feed immediately
         await renderFeed();
-        window.showModal?.("Deleted", "Loaf removed successfully.", true);
-        // Or simple alert
-        // alert("Loaf deleted!");
+
+        // Show success message (using your modal if available)
+        if (typeof window.showModal === 'function') {
+            window.showModal("Deleted", "Loaf removed successfully.", true);
+        } else {
+            alert("Loaf deleted!");
+        }
+
+    } catch (err) {
+        console.error("Delete failed:", err);
+        if (typeof window.showModal === 'function') {
+            window.showModal("Error", "Could not delete: " + (err.message || "Unknown error"), false);
+        } else {
+            alert("Delete failed: " + (err.message || "Unknown error"));
+        }
     }
-}
+};
 // --- 3. UI, THEME & STATS ---
 function handlePostInput(el) {
     const postActions = document.getElementById('postActions');
