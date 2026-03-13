@@ -270,3 +270,22 @@ function toggleLinkedOutModal() {
 
   console.log("Modal toggle called - current hidden:", overlay.classList.contains('hidden'));
 }
+window.showModal = function(title, message, isSuccess = true) {
+    const modal = document.getElementById('globalModal');
+    if (!modal) return alert(message); // fallback
+
+    document.getElementById('modalTitle').textContent = title;
+    document.getElementById('modalBody').textContent = message;
+    document.getElementById('modalEmoji').textContent = isSuccess ? '🛋️' : '⚠️';
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    document.body.style.overflow = 'hidden';
+};
+
+function closeModal() {
+    const modal = document.getElementById('globalModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    document.body.style.overflow = '';
+}
