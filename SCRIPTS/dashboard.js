@@ -139,14 +139,19 @@ function showDeleteConfirmModal(postId) {
     const buttonContainer = document.querySelector('#globalModal button')?.parentElement;
     if (buttonContainer) {
         buttonContainer.innerHTML = `
-            <div class="flex gap-4">
-                <button onclick="closeModal()" class="flex-1 bg-slate-700 text-white py-4 rounded-2xl font-bold hover:bg-slate-600 transition">
-                    No, Cancel
-                </button>
-                <button onclick="performDelete(${postId}); closeModal()" class="flex-1 bg-red-600 text-white py-4 rounded-2xl font-bold hover:bg-red-700 transition">
-                    Yes, Delete
-                </button>
-            </div>
+            <div class="flex flex-col gap-3 w-full mt-2">
+        <button onclick="performDelete(${postId}); closeModal()" 
+            class="w-full py-5 bg-red-600 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl 
+            hover:bg-red-700 hover:shadow-lg hover:shadow-red-200 active:scale-95 transition-all duration-200">
+            Confirm Deletion
+        </button>
+
+        <button onclick="closeModal()" 
+            class="w-full py-5 bg-slate-50 text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl 
+            hover:bg-slate-100 hover:text-slate-600 active:scale-95 transition-all duration-200">
+            Keep this Loaf
+        </button>
+    </div>
         `;
     }
 
