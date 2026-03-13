@@ -37,3 +37,35 @@ async function loadUserProfile(userId) {
 
     document.getElementById('statFollowers').innerText = followers || 0;
 }
+document.addEventListener('DOMContentLoaded', async () => {
+    // 1. Safety Check: Only run if these elements exist on the page
+    const nameDisplay = document.getElementById('userFullName');
+    if (!nameDisplay) return; 
+
+    // 2. Get the ID from the URL
+    const params = new URLSearchParams(window.location.search);
+    const userId = params.get('id');
+
+    if (!userId) {
+        console.error("No user ID provided in URL");
+        return;
+    }
+
+    // 3. Fetch Data
+    const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+    if (error || !profile) {
+        nameDisplay.innerText = "User Not Found";
+        return;
+    }
+
+    // 4. Update UI
+    document.getElementById('navUserName').innerText = profile.full_name;
+    document.getElementById('userFullName').innerText = profile.full_name;
+    document.getElementById('userRole').innerText = profile.role || 'Professional Loafer';
+    document.getElementById('userAvatar').src = profile.avatar_url || '/IMG/Logo.jpeg';
+});
