@@ -5,10 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Profile View | LinkedOut</title>
     <script src="https://cdn.tailwindcss.com"></script>
-       <link rel="icon" type="image/webp" href="/IMG/Logo.jpeg" />
+    <link rel="icon" type="image/webp" href="/IMG/Logo.jpeg" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* Sleek scrollbar for the Loaf Stream */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #e2e8f0;
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #cbd5e1;
+        }
+    </style>
 </head>
 <body class="bg-slate-50 font-sans antialiased text-slate-900">
 
@@ -22,53 +37,76 @@
     </nav>
 
     <main class="max-w-2xl mx-auto px-6 py-12">
-        <div class="bg-white border border-slate-200 rounded-[40px] overflow-hidden shadow-sm">
+        <div class="bg-white border border-slate-200 rounded-[40px] overflow-hidden shadow-sm mb-12">
             <div class="h-32 bg-gradient-to-r from-slate-100 to-slate-200"></div>
             <div class="px-8 pb-8">
                 <div class="relative -mt-12 mb-6">
                     <img id="userAvatar" src="/IMG/Logo.jpeg" class="w-24 h-24 rounded-[32px] border-4 border-white object-cover shadow-md">
                 </div>
+                
                 <div class="flex justify-between items-start mb-6">
                     <div>
                         <h2 id="userFullName" class="text-xl font-black uppercase tracking-tight text-slate-800">---</h2>
                         <p id="userRole" class="text-[10px] font-bold text-cyan-600 uppercase tracking-widest">---</p>
                     </div>
-                  <button id="followBtn" onclick="handleFollowAction()" 
-        class="px-6 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all">
-    <i class="fa-solid fa-user-plus mr-2"></i> FOLLOW
-</button>
+                    <button id="followBtn" onclick="handleFollowAction()" 
+                            class="px-6 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all">
+                        <i class="fa-solid fa-user-plus mr-2"></i> FOLLOW
+                    </button>
                 </div>
+
                 <div class="grid grid-cols-3 gap-4 border-t border-slate-50 pt-8">
                     <div class="text-center">
-                        <p class="text-[10px] font-black uppercase text-slate-400">Followers</p>
+                        <p class="text-[10px] font-black uppercase text-slate-400 mb-1">Followers</p>
                         <p id="statFollowers" class="text-lg font-black text-slate-800">0</p>
                     </div>
                     <div class="text-center border-x border-slate-50">
-                        <p class="text-[10px] font-black uppercase text-slate-400">Following</p>
+                        <p class="text-[10px] font-black uppercase text-slate-400 mb-1">Following</p>
                         <p id="statFollowing" class="text-lg font-black text-slate-800">0</p>
                     </div>
                     <div class="text-center">
-                        <p class="text-[10px] font-black uppercase text-slate-400">Loafs</p>
+                        <p class="text-[10px] font-black uppercase text-slate-400 mb-1">Loafs</p>
                         <p id="statLoafs" class="text-lg font-black text-slate-800">0</p>
                     </div>
                 </div>
             </div>
         </div>
+
+        <section>
+            <div class="flex items-center justify-between mb-8 px-2">
+                <div>
+                    <h3 class="text-[10px] font-black uppercase tracking-[0.3em] text-blue-600 mb-1">Activity Feed</h3>
+                    <h2 class="text-2xl font-black uppercase tracking-tight text-slate-900">Recent Loafs</h2>
+                </div>
+                <div id="loafCountBadge" class="bg-slate-100 px-4 py-1.5 rounded-full text-[9px] font-black text-slate-500 uppercase tracking-widest">
+                    0 POSTS
+                </div>
+            </div>
+
+            <div id="userLoafStream" class="space-y-6 max-h-[800px] overflow-y-auto pr-4 custom-scrollbar">
+                <div id="loafLoading" class="py-20 text-center">
+                    <div class="animate-spin inline-block w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full mb-4"></div>
+                    <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Synchronizing Feed...</p>
+                </div>
+            </div>
+        </section>
     </main>
+
     <div id="alertModal" class="hidden fixed inset-0 z-[100] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-6">
-    <div class="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[30px] p-8 text-center border border-slate-100 dark:border-slate-800 shadow-2xl">
-        <div class="w-16 h-16 bg-cyan-100 dark:bg-cyan-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
-            <i class="fa-solid fa-bell text-cyan-500"></i>
+        <div class="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[30px] p-8 text-center border border-slate-100 dark:border-slate-800 shadow-2xl">
+            <div class="w-16 h-16 bg-cyan-100 dark:bg-cyan-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
+                <i class="fa-solid fa-bell text-cyan-500"></i>
+            </div>
+            <p id="alertMessage" class="text-sm font-black uppercase tracking-widest text-slate-800 dark:text-white mb-8">Message goes here</p>
+            <button onclick="document.getElementById('alertModal').classList.add('hidden')" 
+                    class="w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 py-4 rounded-2xl text-[10px] font-black uppercase tracking-[3px] hover:opacity-90 transition-all">
+                DISMISS
+            </button>
         </div>
-        <p id="alertMessage" class="text-sm font-black uppercase tracking-widest text-slate-800 dark:text-white mb-8">Message goes here</p>
-        <button onclick="document.getElementById('alertModal').classList.add('hidden')" 
-                class="w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 py-4 rounded-2xl text-[10px] font-black uppercase tracking-[3px] hover:opacity-90 transition-all">
-            DISMISS
-        </button>
     </div>
-</div>
+
     <script src="/SCRIPTS/global.js"></script>
-        <script src="/SCRIPTS/auth.js"></script>
+    <script src="/SCRIPTS/auth.js"></script>
     <script src="/SCRIPTS/users.js"></script>
 </body>
 </html>
