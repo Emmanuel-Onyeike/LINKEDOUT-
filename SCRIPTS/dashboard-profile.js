@@ -19,6 +19,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadDashboardStats(user.id);
 });
 
+// --- PLACE THE FUNCTION HERE ---
+async function loadFollowerCount(userId) {
+    const { count, error } = await supabase
+        .from('follows')
+        .select('*', { count: 'exact', head: true })
+        .eq('following_id', userId);
+
+    if (error) {
+        console.error("Error fetching followers:", error.message);
+        return;
+    }
+
+    const followerEl = document.getElementById('followerCount');
+    if (followerEl) {
+        followerEl.innerText = count || 0;
+    }
+}
 // --- LOAD STATS: Fills in the numbers on your profile card ---
 async function loadDashboardStats(userId) {
     // Fetch profile data
