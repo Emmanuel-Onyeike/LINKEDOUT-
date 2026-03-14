@@ -166,72 +166,27 @@ async function renderFeed() {
     const profileMap = {};
     profilesData?.forEach(p => profileMap[p.id] = p);
 
-   postWrapper.innerHTML = posts.map(post => {
-    // 1. Data Setup
-    const profile = profileMap[post.user_id] || {};
-    const isOwner = currentUserId === post.user_id;
-    
-    // 2. Interaction State
-    const isLiked = post.likes?.some(l => l.user_id === currentUserId);
-    const isReposted = post.reposts?.some(r => r.user_id === currentUserId);
+    postWrapper.innerHTML = posts.map(post => {
+        const profile = profileMap[post.user_id] || {};
+        const isOwner = currentUserId === post.user_id;
 
-    // 3. Combined Template
-   return `
-            <div class="bg-white border border-slate-200 rounded-[40px] overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 group">
-                <div class="p-8">
-                    <div class="flex items-center justify-between mb-6">
-                        <div class="flex items-center gap-4 cursor-pointer" onclick="window.location.href='/PAGES/view-profile.html?id=${post.user_id}'">
-                            <div class="relative">
-                                <img src="${profile.avatar_url || '/IMG/Logo.jpeg'}" class="w-12 h-12 rounded-[20px] border-2 border-slate-50 object-cover shadow-sm">
-                                <div class="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></div>
-                            </div>
+        return `
+            <div class="bg-white border border-slate-200 rounded-[32px] overflow-hidden shadow-sm">
+                <div class="p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-3">
+                            <img src="${profile.avatar_url || '/IMG/Logo.jpeg'}" class="w-10 h-10 rounded-full border border-slate-100 object-cover">
                             <div>
-                                <h4 class="text-[11px] font-black text-slate-800 uppercase tracking-tight">${profile.full_name || 'Anonymous'}</h4>
-                                <p class="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em]">${postDate}</p>
+                                <h4 class="text-xs font-black text-slate-800">${profile.full_name || 'Anonymous'}</h4>
+                                <p class="text-[9px] font-bold text-slate-400">${new Date(post.created_at).toLocaleDateString()}</p>
                             </div>
                         </div>
-                        
-                        ${isOwner ? `
-                            <button onclick="deleteLoaf(${post.id})" class="w-10 h-10 flex items-center justify-center rounded-2xl text-slate-200 hover:bg-red-50 hover:text-red-500 transition-all">
-                                <i class="fa-solid fa-trash-can text-xs"></i>
-                            </button>
-                        ` : `
-                            <button class="text-slate-200 hover:text-slate-400"><i class="fa-solid fa-ellipsis"></i></button>
-                        `}
+                        ${isOwner ? `<button onclick="deleteLoaf(${post.id})" class="text-red-500"><i class="fa-solid fa-trash"></i></button>` : ''}
                     </div>
-
-                    <p class="text-[13px] text-slate-600 leading-[1.8] font-medium mb-8">${post.content}</p>
-
-                    <div class="flex items-center justify-between pt-6 border-t border-slate-50">
-                        <div class="flex items-center gap-8">
-                            <button onclick="handleLike(${post.id}, this, ${isLiked})" class="flex items-center gap-2.5 ${isLiked ? 'text-pink-500' : 'text-slate-400'} group/btn transition-all">
-                                <div class="w-9 h-9 rounded-full flex items-center justify-center group-hover/btn:bg-pink-50 transition-colors">
-                                    <i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart text-[14px]"></i>
-                                </div>
-                                <span class="text-[11px] font-black">${post.likes?.length || 0}</span>
-                            </button>
-
-                            <button onclick="window.location.href='/PAGES/post.html?id=${post.id}'" class="flex items-center gap-2.5 text-slate-400 group/btn transition-all">
-                                <div class="w-9 h-9 rounded-full flex items-center justify-center group-hover/btn:bg-cyan-50 transition-colors">
-                                    <i class="fa-regular fa-comment text-[14px]"></i>
-                                </div>
-                                <span class="text-[11px] font-black uppercase tracking-widest">${post.comments?.length || 0}</span>
-                            </button>
-
-                            <button onclick="handleRepost(${post.id}, ${isReposted})" class="flex items-center gap-2.5 ${isReposted ? 'text-green-500' : 'text-slate-400'} group/btn transition-all">
-                                <div class="w-9 h-9 rounded-full flex items-center justify-center group-hover/btn:bg-green-50 transition-colors">
-                                    <i class="fa-solid fa-retweet text-[14px]"></i>
-                                </div>
-                                <span class="text-[11px] font-black uppercase tracking-widest">${post.reposts?.length || 0}</span>
-                            </button>
-                        </div>
-
-                        <button onclick="handleShare(${post.id})" class="w-9 h-9 flex items-center justify-center text-slate-300 hover:text-slate-600 hover:bg-slate-50 rounded-full transition-all">
-                            <i class="fa-solid fa-arrow-up-from-bracket text-[13px]"></i>
-                        </button>
-                    </div>
+                    <p class="text-sm text-slate-700">${post.content}</p>
                 </div>
-            </div>`;
+            </div>
+        `;
     }).join('');
 }
 
@@ -542,107 +497,4 @@ function toggleLinkedOutModal() {
 async function incrementPostView(postId) {
     const { error } = await supabase.rpc('increment_post_views', { target_post_id: postId });
     if (error) console.error("View Count Error:", error.message);
-}
-/** * SOCIAL INTERACTION ENGINE 
- * Isolated functions for Like, Repost, Share, and Commenting
- */
-async function updateDashboardStats() {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    const { count } = await supabase.from('posts').select('*', { count: 'exact', head: true }).eq('user_id', user.id);
-    const countEl = document.getElementById('appCount');
-    if (countEl) countEl.innerText = count || 0;
-}
-
-// --- SECTION 6: INTERACTION HANDLERS ---
-
-// --- LIKE HANDLER ---
-async function handleLike(postId, btn, alreadyLiked) {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return window.showModal("Auth", "Log in to like loafs.", false);
-
-    // Optimistic UI Update for speed
-    const icon = btn.querySelector('i');
-    const countSpan = btn.querySelector('span');
-    let currentCount = parseInt(countSpan.innerText);
-
-    if (alreadyLiked) {
-        // Remove Like from DB
-        const { error } = await supabase.from('likes')
-            .delete()
-            .eq('post_id', postId)
-            .eq('user_id', user.id);
-            
-        if (!error) {
-            btn.classList.replace('text-pink-500', 'text-slate-400');
-            icon.classList.replace('fa-solid', 'fa-regular');
-            countSpan.innerText = Math.max(0, currentCount - 1);
-        }
-    } else {
-        // Add Like to DB
-        const { error } = await supabase.from('likes')
-            .insert([{ post_id: postId, user_id: user.id }]);
-            
-        if (!error) {
-            btn.classList.replace('text-slate-400', 'text-pink-500');
-            icon.classList.replace('fa-regular', 'fa-solid');
-            countSpan.innerText = currentCount + 1;
-        }
-    }
-    
-    // Refresh to ensure UI and DB are perfectly synced
-    await renderFeed(); 
-}
-
-// --- REPOST HANDLER ---
-async function handleRepost(postId, alreadyReposted) {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user || alreadyReposted) return; 
-
-    const { error } = await supabase.from('reposts').insert([
-        { post_id: postId, user_id: user.id }
-    ]);
-
-    if (!error) {
-        window.showModal("Success", "Re-loafed!", true);
-        await renderFeed();
-    }
-}
-function handleShare(postId) {
-    const url = `${window.location.origin}/PAGES/post.html?id=${postId}`;
-    navigator.clipboard.writeText(url);
-    window.showModal("Terminal", "Post link copied to system clipboard.", true);
-}
-
-// --- SECTION 7: DELETION ENGINE ---
-
-window.deleteLoaf = function(id) {
-    showDeleteConfirmModal(id);
-};
-
-function showDeleteConfirmModal(postId) {
-    const modal = document.getElementById('globalModal');
-    if (!modal) return;
-
-    document.getElementById('modalTitle').textContent = "Delete Loaf";
-    document.getElementById('modalBody').innerHTML = `This transmission will be permanently erased from the LinkedOut grid.`;
-    document.getElementById('modalEmoji').textContent = '🗑️';
-
-    const footer = modal.querySelector('.modal-footer') || modal.querySelector('.bg-white');
-    footer.innerHTML = `
-        <div class="flex flex-col gap-3 w-full mt-4">
-            <button onclick="performDelete(${postId}); closeModal()" class="w-full py-5 bg-red-600 text-white text-[10px] font-black uppercase rounded-2xl">Confirm Erase</button>
-            <button onclick="closeModal()" class="w-full py-5 bg-slate-50 text-slate-400 text-[10px] font-black uppercase rounded-2xl">Cancel</button>
-        </div>`;
-
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
-}
-
-async function performDelete(id) {
-    const { error } = await supabase.from('posts').delete().eq('id', id);
-    if (!error) {
-        await renderFeed();
-        updateDashboardStats();
-    }
 }
