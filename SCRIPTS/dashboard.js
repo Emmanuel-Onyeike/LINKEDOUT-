@@ -556,27 +556,58 @@ async function updateDashboardStats() {
 
 // --- SECTION 6: INTERACTION HANDLERS ---
 
+// --- LIKE HANDLER ---
 async function handleLike(postId, btn, alreadyLiked) {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) return window.showModal("Auth", "Log in to like loafs.", false);
+
+    // Optimistic UI Update for speed
+    const icon = btn.querySelector('i');
+    const countSpan = btn.querySelector('span');
+    let currentCount = parseInt(countSpan.innerText);
 
     if (alreadyLiked) {
-        await supabase.from('likes').delete().eq('post_id', postId).eq('user_id', user.id);
+        // Remove Like from DB
+        const { error } = await supabase.from('likes')
+            .delete()
+            .eq('post_id', postId)
+            .eq('user_id', user.id);
+            
+        if (!error) {
+            btn.classList.replace('text-pink-500', 'text-slate-400');
+            icon.classList.replace('fa-solid', 'fa-regular');
+            countSpan.innerText = Math.max(0, currentCount - 1);
+        }
     } else {
-        await supabase.from('likes').insert([{ post_id: postId, user_id: user.id }]);
+        // Add Like to DB
+        const { error } = await supabase.from('likes')
+            .insert([{ post_id: postId, user_id: user.id }]);
+            
+        if (!error) {
+            btn.classList.replace('text-slate-400', 'text-pink-500');
+            icon.classList.replace('fa-regular', 'fa-solid');
+            countSpan.innerText = currentCount + 1;
+        }
     }
-    renderFeed();
+    
+    // Refresh to ensure UI and DB are perfectly synced
+    await renderFeed(); 
 }
 
+// --- REPOST HANDLER ---
 async function handleRepost(postId, alreadyReposted) {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user || alreadyReposted) return;
+    if (!user || alreadyReposted) return; 
 
-    await supabase.from('reposts').insert([{ post_id: postId, user_id: user.id }]);
-    window.showModal("Success", "Loaf added to your timeline.", true);
-    renderFeed();
+    const { error } = await supabase.from('reposts').insert([
+        { post_id: postId, user_id: user.id }
+    ]);
+
+    if (!error) {
+        window.showModal("Success", "Re-loafed!", true);
+        await renderFeed();
+    }
 }
-
 function handleShare(postId) {
     const url = `${window.location.origin}/PAGES/post.html?id=${postId}`;
     navigator.clipboard.writeText(url);
