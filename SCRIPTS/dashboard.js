@@ -331,51 +331,63 @@ function handlePostInput(el) {
     }
 }
 
+/**
+ * UPDATED DASHBOARD STATS ENGINE
+ * Calculates: Profile Views, Followers, Post Impressions, and Total Loafs
+ */
 async function updateDashboardStats() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    // 1. Fetch Profile Data (Names, Role, and the new View count)
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('views')
-        .eq('id', user.id)
-        .single();
+    console.log("Terminal: Refreshing dashboard metrics...");
 
-    // 2. Fetch YOUR posts with their interaction counts
-    // This allows us to calculate "Post Impressions" (Likes + Reposts)
-    const { data: myPosts } = await supabase
-        .from('posts')
-        .select('id, likes(count), reposts(count)')
-        .eq('user_id', user.id);
+    // Parallel execution for maximum speed
+    const [profileRes, followRes, postsRes] = await Promise.all([
+        // 1. Fetch Views from Profile
+        supabase.from('profiles').select('views').eq('id', user.id).single(),
+        
+        // 2. Fetch Follower Count
+        supabase.from('follows').select('*', { count: 'exact', head: true }).eq('following_id', user.id),
+        
+        // 3. Fetch YOUR posts with relationship counts for Impressions
+        supabase.from('posts').select('id, likes(user_id), reposts(user_id)').eq('user_id', user.id)
+    ]);
 
-    // 3. Calculate Totals
-    let totalImpressions = 0;
-    let postCount = myPosts?.length || 0;
-
-    if (myPosts) {
-        myPosts.forEach(post => {
-            // Sum up the nested interaction counts
-            const likes = post.likes?.[0]?.count || 0;
-            const reposts = post.reposts?.[0]?.count || 0;
-            totalImpressions += (likes + reposts);
-        });
+    // --- 1. HANDLE VIEWS ---
+    const viewCountEl = document.getElementById('viewCount');
+    if (viewCountEl) {
+        viewCountEl.innerText = profileRes.data?.views || 0;
     }
 
-    // 4. Update the UI Elements
-    // Profile Views
-    const viewCountEl = document.getElementById('viewCount');
-    if (viewCountEl) viewCountEl.innerText = profile?.views || 0;
+    // --- 2. HANDLE FOLLOWERS ---
+    const followerEl = document.getElementById('followerCount');
+    if (followerEl) {
+        followerEl.innerText = followRes.count || 0;
+    }
 
-    // Post Impressions
+    // --- 3. HANDLE IMPRESSIONS & TOTAL POSTS ---
+    const myPosts = postsRes.data || [];
+    let totalImpressions = 0;
+
+    myPosts.forEach(post => {
+        // Impressions = Total Likes + Total Reposts on your posts
+        const likes = post.likes?.length || 0;
+        const reposts = post.reposts?.length || 0;
+        totalImpressions += (likes + reposts);
+    });
+
+    // Update Impressions UI
     const impressionEl = document.getElementById('impressionCount');
-    if (impressionEl) impressionEl.innerText = totalImpressions;
+    if (impressionEl) {
+        impressionEl.innerText = totalImpressions;
+    }
 
-    // Total Posts (replaces your appCount logic)
+    // Update Total Posts UI (appCount)
     const appCountElement = document.getElementById('appCount');
-    if (appCountElement) appCountElement.innerText = postCount;
+    if (appCountElement) {
+        appCountElement.innerText = myPosts.length;
+    }
 }
-
 function toggleDarkMode() {
     const isDark = document.documentElement.classList.toggle('dark');
     localStorage.setItem('theme', isDark ? 'dark' : 'light');
