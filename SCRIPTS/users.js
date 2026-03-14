@@ -37,20 +37,28 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // --- NEW: RECORD PROFILE VIEW ---
+// --- NEW: RECORD PROFILE VIEW (Refined) ---
 async function recordProfileView(targetUserId) {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    // Safety: Don't count if the user is looking at their own profile
-    if (user && user.id === targetUserId) return;
+    try {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        // Safety: Don't count if viewing own profile
+        if (user && user.id === targetUserId) {
+            console.log("Terminal: Self-view detected, skipping increment.");
+            return;
+        }
 
-    // Call the SQL function we created to increment views
-    const { error } = await supabase.rpc('increment_profile_views', { 
-        target_id: targetUserId 
-    });
+        // Call the RPC with the exact parameter name from your SQL
+        const { error } = await supabase.rpc('increment_profile_views', { 
+            target_id: targetUserId 
+        });
 
-    if (error) console.error("Terminal: View log failed", error.message);
+        if (error) throw error;
+        console.log("Terminal: Profile view logged successfully.");
+    } catch (err) {
+        console.error("Terminal: View log failed", err.message);
+    }
 }
-
 // --- PROFILE DATA ---
 async function loadUserProfile(userId) {
     try {
