@@ -335,13 +335,45 @@ async function updateDashboardStats() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { count } = await supabase
+    // 1. Fetch Profile Data (Names, Role, and the new View count)
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('views')
+        .eq('id', user.id)
+        .single();
+
+    // 2. Fetch YOUR posts with their interaction counts
+    // This allows us to calculate "Post Impressions" (Likes + Reposts)
+    const { data: myPosts } = await supabase
         .from('posts')
-        .select('*', { count: 'exact', head: true })
+        .select('id, likes(count), reposts(count)')
         .eq('user_id', user.id);
 
+    // 3. Calculate Totals
+    let totalImpressions = 0;
+    let postCount = myPosts?.length || 0;
+
+    if (myPosts) {
+        myPosts.forEach(post => {
+            // Sum up the nested interaction counts
+            const likes = post.likes?.[0]?.count || 0;
+            const reposts = post.reposts?.[0]?.count || 0;
+            totalImpressions += (likes + reposts);
+        });
+    }
+
+    // 4. Update the UI Elements
+    // Profile Views
+    const viewCountEl = document.getElementById('viewCount');
+    if (viewCountEl) viewCountEl.innerText = profile?.views || 0;
+
+    // Post Impressions
+    const impressionEl = document.getElementById('impressionCount');
+    if (impressionEl) impressionEl.innerText = totalImpressions;
+
+    // Total Posts (replaces your appCount logic)
     const appCountElement = document.getElementById('appCount');
-    if (appCountElement) appCountElement.innerText = count || 0;
+    if (appCountElement) appCountElement.innerText = postCount;
 }
 
 function toggleDarkMode() {
