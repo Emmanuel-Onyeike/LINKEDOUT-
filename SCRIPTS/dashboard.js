@@ -109,12 +109,13 @@ async function renderFeed() {
 
     const { data: { user } } = await supabase.auth.getUser();
     const currentUserId = user?.id ?? null;
+// Change your posts fetch to this:
+const { data: posts, error } = await supabase
+    .from('posts')
+    .select('*, likes(user_id), reposts(user_id)') // This pulls the related interaction data
+    .order('created_at', { ascending: false });
 
-    const { data: posts, error } = await supabase
-        .from('posts')
-        .select('*')
-        .order('created_at', { ascending: false });
-
+    
     if (error) {
         console.error("Feed error:", error);
         if (placeholder) {
@@ -166,28 +167,61 @@ async function renderFeed() {
     const profileMap = {};
     profilesData?.forEach(p => profileMap[p.id] = p);
 
-    postWrapper.innerHTML = posts.map(post => {
-        const profile = profileMap[post.user_id] || {};
-        const isOwner = currentUserId === post.user_id;
+  postWrapper.innerHTML = posts.map(post => {
+    const profile = profileMap[post.user_id] || {};
+    const isOwner = currentUserId === post.user_id;
 
-        return `
-            <div class="bg-white border border-slate-200 rounded-[32px] overflow-hidden shadow-sm">
-                <div class="p-6">
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="flex items-center gap-3">
-                            <img src="${profile.avatar_url || '/IMG/Logo.jpeg'}" class="w-10 h-10 rounded-full border border-slate-100 object-cover">
-                            <div>
-                                <h4 class="text-xs font-black text-slate-800">${profile.full_name || 'Anonymous'}</h4>
-                                <p class="text-[9px] font-bold text-slate-400">${new Date(post.created_at).toLocaleDateString()}</p>
-                            </div>
+    // Logic for interaction states
+    // These check if the current user's ID exists in the likes/reposts arrays
+    const isLiked = post.likes?.some(l => l.user_id === currentUserId) || false;
+    const isReposted = post.reposts?.some(r => r.user_id === currentUserId) || false;
+    const likeCount = post.likes?.length || 0;
+    const repostCount = post.reposts?.length || 0;
+
+    return `
+        <div class="bg-white border border-slate-200 rounded-[32px] overflow-hidden shadow-sm mb-4">
+            <div class="p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-3">
+                        <img src="${profile.avatar_url || '/IMG/Logo.jpeg'}" class="w-10 h-10 rounded-full border border-slate-100 object-cover">
+                        <div>
+                            <h4 class="text-xs font-black text-slate-800 uppercase tracking-tight">${profile.full_name || 'Anonymous'}</h4>
+                            <p class="text-[9px] font-bold text-slate-400">${new Date(post.created_at).toLocaleDateString()}</p>
                         </div>
-                        ${isOwner ? `<button onclick="deleteLoaf(${post.id})" class="text-red-500"><i class="fa-solid fa-trash"></i></button>` : ''}
                     </div>
-                    <p class="text-sm text-slate-700">${post.content}</p>
+                    ${isOwner ? `<button onclick="deleteLoaf(${post.id})" class="text-red-400 hover:text-red-600 transition-colors"><i class="fa-solid fa-trash text-xs"></i></button>` : ''}
+                </div>
+
+                <p class="text-sm text-slate-700 leading-relaxed mb-6">${post.content}</p>
+
+                <div class="flex items-center gap-6 pt-4 border-t border-slate-50">
+                    <button onclick="handleLike(${post.id}, this, ${isLiked})" 
+                        class="flex items-center gap-2 transition-colors ${isLiked ? 'text-pink-500' : 'text-slate-400 hover:text-pink-500'}">
+                        <i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart text-xs"></i>
+                        <span class="text-[10px] font-black">${likeCount}</span>
+                    </button>
+
+                    <button onclick="openComments(${post.id})" 
+                        class="flex items-center gap-2 text-slate-400 hover:text-cyan-500 transition-colors">
+                        <i class="fa-regular fa-comment text-xs"></i>
+                        <span class="text-[10px] font-black uppercase">Reply</span>
+                    </button>
+
+                    <button onclick="handleRepost(${post.id}, ${isReposted})" 
+                        class="flex items-center gap-2 transition-colors ${isReposted ? 'text-green-500' : 'text-slate-400 hover:text-green-500'}">
+                        <i class="fa-solid fa-retweet text-xs"></i>
+                        <span class="text-[10px] font-black">${repostCount}</span>
+                    </button>
+
+                    <button onclick="handleShare(${post.id})" 
+                        class="text-slate-300 ml-auto hover:text-slate-600 transition-colors">
+                        <i class="fa-solid fa-arrow-up-from-bracket text-xs"></i>
+                    </button>
                 </div>
             </div>
-        `;
-    }).join('');
+        </div>
+    `;
+}).join('');
 }
 
 async function submitLoaf() {
@@ -497,4 +531,32 @@ function toggleLinkedOutModal() {
 async function incrementPostView(postId) {
     const { error } = await supabase.rpc('increment_post_views', { target_post_id: postId });
     if (error) console.error("View Count Error:", error.message);
+}
+async function handleLike(postId, btn, alreadyLiked) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return window.showModal("Identity", "Login to like.", false);
+
+    if (alreadyLiked) {
+        await supabase.from('likes').delete().eq('post_id', postId).eq('user_id', user.id);
+    } else {
+        await supabase.from('likes').insert([{ post_id: postId, user_id: user.id }]);
+    }
+    renderFeed(); // This refreshes the numbers
+}
+
+async function handleRepost(postId, alreadyReposted) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user || alreadyReposted) return;
+    await supabase.from('reposts').insert([{ post_id: postId, user_id: user.id }]);
+    renderFeed();
+}
+
+function handleShare(postId) {
+    const url = `${window.location.origin}/PAGES/post.html?id=${postId}`;
+    navigator.clipboard.writeText(url);
+    window.showModal("LinkedOut", "Link copied to clipboard.", true);
+}
+
+function openComments(postId) {
+    window.location.href = `/PAGES/post.html?id=${postId}`;
 }
