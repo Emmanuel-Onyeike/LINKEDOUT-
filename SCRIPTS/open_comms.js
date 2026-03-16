@@ -72,12 +72,7 @@ async function loadColonyData(id) {
         renderAdminInterface();
     }
 }
-// After setting isFounder
-showFounderControls();
-// After setting isFounder in loadColonyData()
-if (isFounder) {
-    document.getElementById('deleteColonyBtn')?.classList.remove('hidden');
-}
+
 // ────────────────────────────────────────────────
 // 2. Load members (unchanged)
 // ────────────────────────────────────────────────
@@ -306,57 +301,5 @@ function safeAlert(title, message, icon = '🔔') {
         window.triggerAlert(title, message, icon);
     } else {
         alert(`${title}\n\n${message}`);
-    }
-}
-// ────────────────────────────────────────────────
-// NEW: Delete Colony (only for founder)
-// ────────────────────────────────────────────────
-async function confirmDeleteColony() {
-    if (!currentColony) return;
-
-    // Extra safety: only founder can delete
-    if (!isFounder) {
-        safeAlert("Permission Denied", "Only the colony founder can delete it.", "🚫");
-        return;
-    }
-
-    const confirmed = confirm(`Are you ABSOLUTELY sure you want to permanently delete "${currentColony.name}"?\n\nThis will erase the colony, all members, posts, and cannot be undone.`);
-    if (!confirmed) return;
-
-    safeAlert("Deleting Colony", "Wiping out the colony... This may take a moment.", "🗑️");
-
-    try {
-        // 1. Delete all related posts (optional - if no cascade)
-        await supabase.from('community_posts').delete().eq('community_id', currentColony.id);
-
-        // 2. Delete all members
-        await supabase.from('community_members').delete().eq('community_id', currentColony.id);
-
-        // 3. Delete the colony itself
-        const { error } = await supabase
-            .from('communities')
-            .delete()
-            .eq('id', currentColony.id);
-
-        if (error) throw error;
-
-        // 4. Clean localStorage sidebar
-        let list = JSON.parse(localStorage.getItem('userCommunities')) || [];
-        list = list.filter(c => c.id !== currentColony.id);
-        localStorage.setItem('userCommunities', JSON.stringify(list));
-
-        safeAlert("Colony Deleted", `${currentColony.name} has been permanently removed.`, "✅");
-        setTimeout(() => window.location.href = "/PAGES/communities.html", 2000);
-
-    } catch (err) {
-        console.error("Delete colony failed:", err);
-        safeAlert("Delete Failed", err.message || "Something went wrong.", "⚠️");
-    }
-}
-
-// Show delete button only to founder (call this in loadColonyData after setting isFounder)
-function showFounderControls() {
-    if (isFounder) {
-        document.getElementById('deleteColonyBtn')?.classList.remove('hidden');
     }
 }
