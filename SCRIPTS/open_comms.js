@@ -72,7 +72,8 @@ async function loadColonyData(id) {
         renderAdminInterface();
     }
 }
-
+// After setting isFounder
+showFounderControls();
 // ────────────────────────────────────────────────
 // 2. Load members (unchanged)
 // ────────────────────────────────────────────────
