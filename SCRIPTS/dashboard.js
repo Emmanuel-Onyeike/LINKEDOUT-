@@ -583,28 +583,34 @@ function showPromotionModal(tierName) {
     document.body.appendChild(modal);
 }
 
+// Ensure this is NOT wrapped inside another function
 function toggleLinkedOutModal() {
     const overlay = document.getElementById('linkedOutModalOverlay');
+    const content = document.getElementById('linkedOutDropdown');
+    
     if (!overlay) {
-        console.error("Overlay not found");
+        console.error("Modal Overlay ID 'linkedOutModalOverlay' missing from HTML");
         return;
     }
 
-    if (overlay.classList.contains('hidden')) {
-        // Open
+    const isHidden = overlay.classList.contains('hidden');
+
+    if (isHidden) {
+        // OPEN LOGIC
         overlay.classList.remove('hidden');
         overlay.classList.add('flex');
-        overlay.style.opacity = '1';
-        const content = document.getElementById('linkedOutDropdown');
-        if (content) {
-            content.classList.remove('scale-95', 'opacity-0');
-            content.classList.add('scale-100', 'opacity-100');
-        }
+        // Small timeout to allow the browser to register the flex display before animating
+        setTimeout(() => {
+            overlay.style.opacity = '1';
+            if (content) {
+                content.classList.remove('scale-95', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+            }
+        }, 10);
         document.body.style.overflow = 'hidden';
     } else {
-        // Close
+        // CLOSE LOGIC
         overlay.style.opacity = '0';
-        const content = document.getElementById('linkedOutDropdown');
         if (content) {
             content.classList.remove('scale-100', 'opacity-100');
             content.classList.add('scale-95', 'opacity-0');
@@ -613,11 +619,18 @@ function toggleLinkedOutModal() {
             overlay.classList.add('hidden');
             overlay.classList.remove('flex');
             document.body.style.overflow = '';
-        }, 300);
+        }, 300); // Matches your transition duration
     }
-
-    console.log("Modal toggle called - current hidden:", overlay.classList.contains('hidden'));
 }
+
+// Add a click-outside-to-close feature for better UX
+document.addEventListener('click', (e) => {
+    const overlay = document.getElementById('linkedOutModalOverlay');
+    const content = document.getElementById('linkedOutDropdown');
+    if (e.target === overlay) {
+        toggleLinkedOutModal();
+    }
+});
 
 async function incrementPostView(postId) {
     const { error } = await supabase.rpc('increment_post_views', { target_post_id: postId });
