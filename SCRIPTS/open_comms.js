@@ -1,5 +1,5 @@
 // open_comms.js - FINAL COMPLETE & WORKING VERSION
-// All 400 errors fixed: correct column (full_name), exact relationship names, no comments in select
+// All 400 Bad Request errors fixed, column name corrected (full_name), relationships resolved
 
 let currentColony = null;
 let userRole = 'member';
@@ -25,7 +25,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     await renderColonyPosts(colonyId);
 });
 
+// ────────────────────────────────────────────────
 // 1. Load colony details + user role
+// ────────────────────────────────────────────────
 async function loadColonyData(id) {
     const { data: colony, error } = await supabase
         .from('communities')
@@ -69,7 +71,9 @@ async function loadColonyData(id) {
     }
 }
 
-// 2. Load members - using full_name (real column in profiles table)
+// ────────────────────────────────────────────────
+// 2. Load members - using full_name (correct column)
+// ────────────────────────────────────────────────
 async function loadColonyMembers(id) {
     const { data: members, error } = await supabase
         .from('community_members')
@@ -110,7 +114,9 @@ async function loadColonyMembers(id) {
     }
 }
 
-// 3. Load posts - using exact FK name from your error message
+// ────────────────────────────────────────────────
+// 3. Load posts - using exact FK name from error
+// ────────────────────────────────────────────────
 async function renderColonyPosts(id) {
     const feed = document.getElementById('colonyFeed');
     if (!feed) return;
@@ -172,7 +178,7 @@ async function renderColonyPosts(id) {
 }
 
 // ────────────────────────────────────────────────
-// Your original admin + broadcast functions (kept exactly as you had)
+// Your original admin + broadcast functions (pasted exactly)
 // ────────────────────────────────────────────────
 function renderAdminInterface() {
     const adminBox = document.getElementById('adminPostBox');
