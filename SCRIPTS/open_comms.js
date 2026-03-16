@@ -74,6 +74,10 @@ async function loadColonyData(id) {
 }
 // After setting isFounder
 showFounderControls();
+// After setting isFounder in loadColonyData()
+if (isFounder) {
+    document.getElementById('deleteColonyBtn')?.classList.remove('hidden');
+}
 // ────────────────────────────────────────────────
 // 2. Load members (unchanged)
 // ────────────────────────────────────────────────
