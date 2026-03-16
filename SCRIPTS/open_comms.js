@@ -1,4 +1,4 @@
-// open_comms.js - Live Database Integrated Version
+// open_comms.js - Stabilized & Relationship-Fixed Version
 let currentColony = null;
 let userRole = 'member';
 
@@ -11,7 +11,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
     
-    // Ensure Supabase is available from global.js
     if (typeof supabase === 'undefined') {
         console.error("Terminal: Supabase instance not found.");
         return;
@@ -22,7 +21,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 async function loadColonyData(id) {
-    // 1. Fetch Colony Details
     const { data: colony, error } = await supabase
         .from('communities')
         .select('*')
@@ -30,14 +28,13 @@ async function loadColonyData(id) {
         .single();
 
     if (error || !colony) {
-        console.error("Colony not found:", id);
         window.location.href = '/PAGES/dashboard.html';
         return;
     }
 
     currentColony = colony;
 
-    // 2. Determine User Role
+    // Check Role
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
         const { data: memberData } = await supabase
@@ -45,22 +42,28 @@ async function loadColonyData(id) {
             .select('role')
             .eq('community_id', id)
             .eq('user_id', user.id)
-            .maybeSingle(); // maybeSingle prevents errors if user isn't a member yet
+            .maybeSingle();
         
         userRole = memberData?.role || 'member';
     }
 
-    // 3. Update UI
+    // Branding Update & Image 404 Guardrail
     document.getElementById('commTitle').innerText = colony.name;
     document.getElementById('commVibe').innerText = colony.description ? `Vibe: ${colony.description.substring(0, 40)}...` : 'Vibe: Chill';
     document.getElementById('commFullDesc').innerText = colony.description || 'No description provided.';
     document.getElementById('maxLimit').innerText = colony.max_users || 100;
     
     const displayImg = colony.image_url || '/IMG/Logo.jpeg';
-    document.getElementById('commCover').src = displayImg;
-    document.getElementById('commIcon').src = displayImg;
+    const coverEl = document.getElementById('commCover');
+    const iconEl = document.getElementById('commIcon');
+    
+    coverEl.src = displayImg;
+    iconEl.src = displayImg;
 
-    // 4. Admin View Trigger
+    // Silence 404s with a high-quality tech fallback
+    coverEl.onerror = () => coverEl.src = 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1200';
+    iconEl.onerror = () => iconEl.src = '/IMG/Logo.jpeg';
+
     if (userRole === 'admin') {
         const badge = document.getElementById('roleBadge');
         if (badge) badge.classList.remove('hidden');
@@ -71,33 +74,31 @@ async function loadColonyData(id) {
 }
 
 async function loadColonyMembers(id) {
+    // FIX: Simplified selection to resolve PGRST200
     const { data: members, error } = await supabase
         .from('community_members')
         .select(`
             role,
-            profiles:user_id ( username, avatar_url )
+            profiles ( username, avatar_url )
         `)
         .eq('community_id', id);
 
     if (error) {
-        console.error("Member Load Error:", error);
+        console.error("Member Load Error:", error.message);
         return;
     }
 
     const list = document.getElementById('membersList');
-    const countLabel = document.getElementById('occupantCount');
-    const totalLabel = document.getElementById('memberCount');
-
     if (list) {
-        countLabel.innerText = members.length;
-        totalLabel.innerText = members.length;
+        document.getElementById('occupantCount').innerText = members.length;
+        document.getElementById('memberCount').innerText = members.length;
         
         list.innerHTML = members.map(m => `
             <div class="flex items-center gap-3 p-3 bg-slate-50/50 rounded-2xl border border-slate-100/50 mb-2">
-                <img src="${m.profiles?.avatar_url || '/IMG/Logo.jpeg'}" class="w-8 h-8 rounded-full object-cover border border-white shadow-sm">
+                <img src="${m.profiles?.avatar_url || '/IMG/Logo.jpeg'}" class="w-8 h-8 rounded-full object-cover border border-white">
                 <div class="flex flex-col">
                     <span class="text-[10px] font-black text-slate-700 uppercase">${m.profiles?.username || 'Loafer'}</span>
-                    <span class="text-[7px] font-bold text-cyan-500 uppercase tracking-tight">${m.role}</span>
+                    <span class="text-[7px] font-bold text-cyan-500 uppercase">${m.role}</span>
                 </div>
             </div>
         `).join('');
@@ -117,19 +118,15 @@ function renderAdminInterface() {
             <p class="text-[9px] text-slate-400 font-bold uppercase mb-6">Enter Colony PIN</p>
             <div class="flex justify-center gap-3">
                 <input type="password" id="unlockPin" maxlength="4" placeholder="••••" 
-                    class="w-28 bg-slate-100 border-none rounded-2xl p-4 text-center text-lg font-black tracking-[0.5em] focus:ring-2 focus:ring-cyan-500 outline-none transition-all">
+                    class="w-28 bg-slate-100 border-none rounded-2xl p-4 text-center text-lg font-black tracking-[0.5em] focus:ring-2 focus:ring-cyan-500 outline-none">
                 <button onclick="unlockAdminTools()" class="bg-slate-900 text-white px-8 py-4 rounded-2xl text-[10px] font-black uppercase hover:bg-cyan-600 transition shadow-lg active:scale-95">Verify</button>
             </div>
         </div>
         <div id="actualPostBox" class="hidden animate-slide">
-            <div class="flex items-center gap-2 mb-4">
-                 <span class="w-2 h-2 bg-cyan-500 rounded-full animate-pulse"></span>
-                 <span class="text-[9px] font-black text-cyan-600 uppercase tracking-widest">Live Broadcast System</span>
-            </div>
             <textarea id="adminPostInput" placeholder="Broadcast a signal to the colony..." 
                 class="w-full bg-slate-50 border-none rounded-[30px] p-6 text-sm font-medium focus:ring-2 focus:ring-cyan-500 h-32 resize-none outline-none"></textarea>
             <div class="flex justify-end mt-4">
-                <button onclick="publishAdminPost()" class="bg-slate-900 text-white px-10 py-4 rounded-2xl text-[10px] font-black uppercase hover:bg-cyan-600 transition-all shadow-lg active:scale-95">Send Signal</button>
+                <button onclick="publishAdminPost()" class="bg-slate-900 text-white px-10 py-4 rounded-2xl text-[10px] font-black uppercase hover:bg-cyan-600 transition shadow-lg active:scale-95">Send Signal</button>
             </div>
         </div>
     `;
@@ -143,7 +140,12 @@ window.unlockAdminTools = function() {
         document.getElementById('actualPostBox').classList.remove('hidden');
     } else {
         document.getElementById('unlockPin').value = '';
-        alert("Invalid Colony PIN"); // Fallback if custom alerts aren't ready
+        // Custom Modal Guardrail Alert
+        if (window.triggerAlert) {
+            triggerAlert('Access Denied', 'The provided PIN is incorrect.', '🚫');
+        } else {
+            alert("Invalid Colony PIN");
+        }
     }
 };
 
@@ -175,21 +177,18 @@ window.publishAdminPost = async function() {
 async function renderColonyPosts(id) {
     const feed = document.getElementById('colonyFeed');
     
+    // FIX: Simplified selection to resolve PGRST200
     const { data: posts, error } = await supabase
         .from('community_posts')
         .select(`
             *,
-            profiles:user_id ( username, avatar_url )
+            profiles ( username, avatar_url )
         `)
         .eq('community_id', id)
         .order('created_at', { ascending: false });
 
     if (error || !posts || posts.length === 0) {
-        feed.innerHTML = `
-            <div class="text-center py-24 bg-white rounded-[40px] border-2 border-dashed border-slate-100">
-                <i class="fa-solid fa-satellite-dish text-slate-200 text-4xl mb-4"></i>
-                <p class="text-[10px] font-black text-slate-300 uppercase tracking-widest">No transmissions active in this sector.</p>
-            </div>`;
+        feed.innerHTML = `<div class="text-center py-24 bg-white rounded-[40px] border-2 border-dashed border-slate-50"><p class="text-[10px] font-black text-slate-300 uppercase tracking-widest">No transmissions active.</p></div>`;
         return;
     }
 
