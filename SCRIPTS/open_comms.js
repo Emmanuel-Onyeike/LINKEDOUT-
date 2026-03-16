@@ -229,3 +229,37 @@ window.triggerAlert = function(title, message, icon = '🔔') {
     // Auto-remove after 5 seconds
     setTimeout(() => { if(modal.parentNode) modal.remove(); }, 5000);
 };
+// Leave colony (remove membership)
+async function leaveCommunity() {
+    if (!currentColony || !confirm("Are you sure you want to abandon this colony?")) {
+        return;
+    }
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+        triggerAlert("Auth Required", "Please log in first.", "🔒");
+        return;
+    }
+
+    const { error } = await supabase
+        .from('community_members')
+        .delete()
+        .eq('community_id', currentColony.id)
+        .eq('user_id', user.id);
+
+    if (error) {
+        console.error("Leave failed:", error);
+        triggerAlert("Error", "Could not leave colony.", "⚠️");
+    } else {
+        // Update local storage so sidebar reflects change
+        let list = JSON.parse(localStorage.getItem('userCommunities')) || [];
+        list = list.map(c => {
+            if (c.id === currentColony.id) c.joined = false;
+            return c;
+        });
+        localStorage.setItem('userCommunities', JSON.stringify(list));
+
+        triggerAlert("Left Colony", `You have abandoned ${currentColony.name}.`, "👋");
+        setTimeout(() => window.location.href = "/PAGES/communities.html", 1800);
+    }
+}
