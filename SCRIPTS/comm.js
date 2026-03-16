@@ -227,3 +227,63 @@ async function handleRefresh() {
         text.innerText = "Refresh Failed";
     }
 }
+// --- 6. MODAL CONTROLS ---
+
+// Opens the "Found a New Community" Creator Modal
+function openCreatorModal() {
+    const modal = document.getElementById('creatorModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        // Reset the image preview if any was left over
+        const previewBox = document.getElementById('imagePreviewContainer');
+        if (previewBox) {
+            previewBox.innerHTML = `
+                <i class="fa-solid fa-camera text-slate-300 mb-2 group-hover:text-cyan-500 transition"></i>
+                <span class="text-[9px] font-black text-slate-400 uppercase">Upload Cover Image</span>
+                <input type="file" id="commFile" class="hidden" onchange="previewCommImage(this)">
+            `;
+        }
+    }
+}
+
+// Closes the Creator Modal
+function closeCreatorModal() {
+    const modal = document.getElementById('creatorModal');
+    if (modal) {
+        modal.classList.replace('flex', 'hidden');
+    }
+}
+
+// Helper to toggle the PIN field based on role selection
+function togglePinField(role) {
+    const pinField = document.getElementById('pinField');
+    if (pinField) {
+        if (role === 'admin') {
+            pinField.classList.remove('hidden');
+            pinField.classList.add('animate-[modalSlideUp_0.3s_ease-out]');
+        } else {
+            pinField.classList.add('hidden');
+        }
+    }
+}
+
+// Preview image logic for the creator modal
+function previewCommImage(input) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const previewBox = document.getElementById('imagePreviewContainer');
+            if (previewBox) {
+                previewBox.innerHTML = `
+                    <img src="${e.target.result}" class="w-full h-full object-cover rounded-3xl">
+                    <div class="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 hover:opacity-100 transition rounded-3xl cursor-pointer" onclick="document.getElementById('commFile').click()">
+                        <span class="text-[10px] text-white font-black uppercase tracking-widest">Change Image</span>
+                    </div>
+                    <input type="file" id="commFile" class="hidden" onchange="previewCommImage(this)">
+                `;
+            }
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
