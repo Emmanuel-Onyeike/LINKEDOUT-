@@ -441,25 +441,26 @@ function closeModal() {
 // =============================================================================
 
 async function syncSidebarCommunities() {
-    const listWrapper = document.getElementById('sidebarCommList');
     const skeleton = document.getElementById('commSkeleton');
     const emptyState = document.getElementById('emptyCommState');
+    const dynamicItems = document.getElementById('dynamicCommItems');
 
-    if (!listWrapper) return;
+    // Safety check
+    if (!dynamicItems) return;
 
-    // 1. Show skeleton while we check auth/data
+    // 1. Initial State: Show skeleton, hide others
     if (skeleton) skeleton.classList.remove('hidden');
     if (emptyState) emptyState.classList.add('hidden');
+    dynamicItems.innerHTML = ''; // Clear only the dynamic items
 
     const { data: { user } } = await supabase.auth.getUser();
-    
     if (!user) {
         if (skeleton) skeleton.classList.add('hidden');
         if (emptyState) emptyState.classList.remove('hidden');
         return;
     }
 
-    // 2. Fetch LIVE from Supabase (Don't trust LocalStorage)
+    // 2. Fetch Live Data
     const { data: memberships, error } = await supabase
         .from('community_members')
         .select(`
@@ -468,19 +469,18 @@ async function syncSidebarCommunities() {
         `)
         .eq('user_id', user.id);
 
-    // 3. Cleanup UI states
+    // 3. Hide skeleton after fetch
     if (skeleton) skeleton.classList.add('hidden');
 
     if (error || !memberships || memberships.length === 0) {
         if (emptyState) emptyState.classList.remove('hidden');
-        listWrapper.querySelectorAll('.community-item').forEach(el => el.remove());
         return;
     }
 
+    // 4. Render only to the dynamicItems div
     if (emptyState) emptyState.classList.add('hidden');
 
-    // 4. Render with a "Fragment" to prevent flickering
-    const html = memberships.map(m => {
+    dynamicItems.innerHTML = memberships.map(m => {
         const comm = m.communities;
         if (!comm) return '';
         const isFounder = m.role === 'admin';
@@ -497,13 +497,13 @@ async function syncSidebarCommunities() {
                     </div>
                 </div>
                 <button onclick="window.location.href='/PAGES/open_comm.html?id=${comm.id}'" 
-                        class="bg-white border border-slate-100 text-slate-800 px-3 py-1.5 rounded-xl text-[8px] font-black uppercase hover:bg-cyan-500 hover:text-white hover:border-cyan-500 transition-all shadow-sm">
+                        class="bg-white border border-slate-100 text-slate-800 px-3 py-1.5 rounded-xl text-[8px] font-black uppercase hover:bg-cyan-500 hover:text-white transition-all shadow-sm">
                     Open
                 </button>
             </div>
         `;
     }).join('');
-
+}
     // Update only the dynamic part, leaving the EmptyState/Skeleton divs intact
     listWrapper.innerHTML = `
         ${document.getElementById('emptyCommState').outerHTML}
