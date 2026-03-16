@@ -1,28 +1,25 @@
+// comm.js - Comprehensive Colony Management
+
 // --- INITIALIZATION ---
 document.addEventListener('DOMContentLoaded', async () => {
     if (typeof supabase === 'undefined') {
-        const modal = document.getElementById('globalModal');
-        if(modal) {
-            document.getElementById('modalTitle').innerText = "⚠️ System Failure";
-            document.getElementById('modalBody').innerText = "Supabase Engine Offline.";
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-        }
+        triggerAlert("⚠️ System Failure", "Supabase Engine Offline. Check your scripts.", "🚫");
         return;
     }
     
-    // Run these if the elements exist on the current page
+    // Auto-load based on current page elements
     if (document.getElementById('communityContainer')) await fetchCommunities();
     if (document.getElementById('sidebarCommList')) await loadMyCircles();
 });
 
-// --- 1. FETCH ALL COMMUNITIES (For Discovery Page) ---
+// --- 1. FETCH ALL COMMUNITIES (Discovery Page) ---
 async function fetchCommunities() {
     const container = document.getElementById('communityContainer');
     if (!container) return;
 
     container.innerHTML = `<div class="p-20 text-center animate-pulse uppercase font-black text-slate-300">Scanning for signals...</div>`;
 
+    // Fetch communities and join the member count
     const { data: communities, error } = await supabase
         .from('communities')
         .select(`*, community_members(count)`);
@@ -45,22 +42,22 @@ async function fetchCommunities() {
         const memberCount = comm.community_members?.[0]?.count || 0;
         const isJoined = myJoinedIds.includes(comm.id);
         return `
-            <div class="bg-white border border-slate-200 rounded-[40px] overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500">
-                <div class="h-32 bg-slate-100">
-                    <img src="${comm.image_url || '/IMG/Default_Cover.jpeg'}" class="w-full h-full object-cover">
+            <div class="bg-white border border-slate-200 rounded-[40px] overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 animate-slide">
+                <div class="h-32 bg-slate-100 overflow-hidden">
+                    <img src="${comm.image_url || '/IMG/Default_Cover.jpeg'}" class="w-full h-full object-cover" onerror="this.src='https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=800'">
                 </div>
                 <div class="px-8 pb-8">
                     <div class="relative -mt-10 mb-4">
                         <div class="w-20 h-20 bg-white rounded-3xl p-1 shadow-md">
-                            <img src="${comm.image_url || '/IMG/Logo.jpeg'}" class="w-full h-full object-cover rounded-2xl">
+                            <img src="${comm.image_url || '/IMG/Logo.jpeg'}" class="w-full h-full object-cover rounded-2xl" onerror="this.src='/IMG/Logo.jpeg'">
                         </div>
                     </div>
                     <h2 class="text-lg font-black text-slate-800 uppercase tracking-tight">${comm.name}</h2>
-                    <p class="text-xs text-slate-500 font-medium mt-2 line-clamp-2">${comm.description}</p>
+                    <p class="text-xs text-slate-500 font-medium mt-2 line-clamp-2">${comm.description || 'No description provided.'}</p>
                     <div class="flex items-center justify-between mt-8">
                         <span class="text-[9px] font-black text-slate-400 uppercase">${memberCount} / ${comm.max_users || 100} Loafers</span>
                         <button onclick="handleJoin('${comm.id}', '${comm.name}')" ${isJoined ? 'disabled' : ''}
-                            class="${isJoined ? 'bg-cyan-500 text-white' : 'bg-slate-50 border border-slate-200 text-slate-800 hover:bg-cyan-600 hover:text-white'} px-8 py-2.5 rounded-2xl text-[10px] font-black uppercase transition-all">
+                            class="${isJoined ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-200' : 'bg-slate-50 border border-slate-200 text-slate-800 hover:bg-cyan-600 hover:text-white'} px-8 py-2.5 rounded-2xl text-[10px] font-black uppercase transition-all">
                             ${isJoined ? 'Joined' : 'Join Circle'}
                         </button>
                     </div>
@@ -69,128 +66,108 @@ async function fetchCommunities() {
     }).join('');
 }
 
-// --- 2. LOAD DASHBOARD SIDEBAR (Created & Joined) ---
+// --- 2. LOAD DASHBOARD SIDEBAR ---
 async function loadMyCircles() {
     const list = document.getElementById('sidebarCommList');
-    const emptyState = document.getElementById('emptyCommState');
-    const skeleton = document.getElementById('commSkeleton');
-    const cardContainer = document.getElementById('myCommunitiesCard');
-
     if (!list) return;
 
-    // 1. Get Session instead of just User (More reliable for data fetching)
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-        if (skeleton) skeleton.classList.add('hidden');
-        if (emptyState) emptyState.classList.remove('hidden');
-        return;
-    }
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
 
-    const user = session.user;
-
-    // 2. Unhide everything immediately to stop CSS from blocking the view
-    if (cardContainer) {
-        cardContainer.classList.remove('hidden');
-        cardContainer.style.display = 'flex'; // Force display
-    }
-
-    // 3. Fetch Memberships with explicit join syntax
-    // Note: If this returns an error, ensure your foreign key in Supabase 
-    // is named 'community_id' pointing to communities.id
+    // Use standard join syntax
     const { data: memberships, error } = await supabase
         .from('community_members')
         .select(`
             role,
-            communities!community_members_community_id_fkey (
-                id,
-                name,
-                image_url
-            )
+            communities ( id, name, image_url )
         `)
         .eq('user_id', user.id);
 
-    // 4. Clear Skeletons
-    if (skeleton) skeleton.classList.add('hidden');
-
     if (error) {
-        console.error("Supabase Error:", error.message);
-        list.innerHTML = `<p class="text-[8px] text-red-400 uppercase p-2">Sync Error: Check Console</p>`;
+        console.error("Sidebar Sync Error:", error.message);
         return;
     }
 
-    // 5. Handle Empty State
     if (!memberships || memberships.length === 0) {
-        if (emptyState) emptyState.classList.remove('hidden');
-        list.innerHTML = ''; 
+        list.innerHTML = `<p class="text-[8px] text-slate-300 uppercase p-4 text-center">No Circles Joined</p>`;
         return;
     }
 
-    if (emptyState) emptyState.classList.add('hidden');
-
-    // 6. Final Render Logic
     list.innerHTML = memberships.map(m => {
-        // Handle cases where the community data might be nested or null
         const comm = m.communities;
         if (!comm) return '';
+        const isFounder = m.role === 'admin';
         
-        const badge = m.role === 'admin' ? '<i class="fa-solid fa-crown text-[8px] text-amber-400 ml-1"></i>' : '';
-        const roleText = m.role === 'admin' ? 'Founder' : 'Member';
-
         return `
             <div class="group flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 transition-all cursor-pointer" 
                  onclick="window.location.href='/PAGES/open_comm.html?id=${comm.id}'">
                 <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 shrink-0 overflow-hidden rounded-lg shadow-sm">
-                        <img src="${comm.image_url || '/IMG/Logo.jpeg'}" 
-                             class="w-full h-full object-cover group-hover:scale-110 transition-transform"
-                             onerror="this.src='/IMG/Logo.jpeg'">
+                    <div class="w-8 h-8 shrink-0 overflow-hidden rounded-lg shadow-sm bg-slate-100">
+                        <img src="${comm.image_url || '/IMG/Logo.jpeg'}" class="w-full h-full object-cover group-hover:scale-110 transition-transform" onerror="this.src='/IMG/Logo.jpeg'">
                     </div>
                     <div class="flex flex-col">
                         <span class="text-[10px] font-black uppercase text-slate-700 tracking-tighter flex items-center">
-                            ${comm.name} ${badge}
+                            ${comm.name} ${isFounder ? '<i class="fa-solid fa-crown text-[8px] text-amber-400 ml-1"></i>' : ''}
                         </span>
-                        <span class="text-[8px] text-slate-400 font-medium uppercase tracking-widest">
-                            ${roleText}
-                        </span>
+                        <span class="text-[8px] text-slate-400 font-bold uppercase tracking-widest">${m.role}</span>
                     </div>
                 </div>
                 <i class="fa-solid fa-chevron-right text-[8px] text-slate-300 opacity-0 group-hover:opacity-100 transition-all mr-1"></i>
             </div>`;
     }).join('');
-
-    console.log("Terminal: Sidebar successfully populated.");
 }
-// --- 3. CREATE COLONY ---
-async function handleCreateColony() {
-    const name = document.getElementById('commName')?.value;
-    const desc = document.getElementById('commDesc')?.value;
+
+// --- 3. CREATE COLONY (Founder Logic) ---
+async function createNewCommunity() {
+    const name = document.getElementById('commName')?.value.trim();
+    const desc = document.getElementById('commDesc')?.value.trim();
+    const role = document.getElementById('roleSelect')?.value;
+    const pin = document.getElementById('adminPin')?.value;
+    const max = document.getElementById('maxUsers')?.value || 100;
     const file = document.getElementById('commFile')?.files[0];
 
     if (!name || !desc) return triggerAlert('Entry Denied', 'Name and vibe required.', '⚠️');
+    if (role === 'admin' && (!pin || pin.length < 4)) return triggerAlert('Security Error', '4-digit PIN required for Founders.', '🔐');
 
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return triggerAlert('Auth Error', 'Login required.', '🔒');
+    if (!user) return triggerAlert('Auth Error', 'Sign in to found a colony.', '🔒');
     
-    triggerAlert('Establishing Colony', 'Securing the perimeter...', '🏗️');
+    triggerAlert('Establishing Colony', 'Uploading assets and securing perimeter...', '🏗️');
 
     let imageUrl = null;
     if (file) {
-        const fileName = `${user.id}-${Date.now()}.${file.name.split('.').pop()}`;
+        const fileName = `colony-${Date.now()}.${file.name.split('.').pop()}`;
         const { error: upErr } = await supabase.storage.from('community-images').upload(fileName, file);
-        if (!upErr) imageUrl = supabase.storage.from('community-images').getPublicUrl(fileName).data.publicUrl;
+        if (!upErr) {
+            imageUrl = supabase.storage.from('community-images').getPublicUrl(fileName).data.publicUrl;
+        }
     }
 
+    // 1. Create the community
     const { data: colony, error: createError } = await supabase
         .from('communities')
-        .insert([{ name, description: desc, image_url: imageUrl, founder_id: user.id }])
+        .insert([{ 
+            name, 
+            description: desc, 
+            image_url: imageUrl, 
+            founder_id: user.id,
+            pin: pin ? parseInt(pin) : null,
+            max_users: parseInt(max)
+        }])
         .select().single();
 
-    if (!createError) {
-        // This is what ensures it appears in the sidebar!
-        await supabase.from('community_members').insert([{ community_id: colony.id, user_id: user.id, role: 'admin' }]);
-        setTimeout(() => { window.location.href = '/PAGES/dashboard.html'; }, 1500);
-    } else {
-        triggerAlert('Error', createError.message, '❌');
+    if (createError) return triggerAlert('Error', createError.message, '❌');
+
+    // 2. Add creator as a member (Admin/Founder role)
+    const { error: memberError } = await supabase.from('community_members').insert([{ 
+        community_id: colony.id, 
+        user_id: user.id, 
+        role: role === 'admin' ? 'admin' : 'member' 
+    }]);
+
+    if (!memberError) {
+        triggerAlert('Success', 'Colony established. Redirecting...', '🚀');
+        setTimeout(() => { window.location.href = `/PAGES/open_comm.html?id=${colony.id}`; }, 1500);
     }
 }
 
@@ -199,31 +176,36 @@ async function handleJoin(commId, commName) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return triggerAlert('Access Denied', 'Login to join.', '🔒');
 
-    const { error } = await supabase.from('community_members').insert([{ community_id: commId, user_id: user.id }]);
+    const { error } = await supabase.from('community_members').insert([{ community_id: commId, user_id: user.id, role: 'member' }]);
 
     if (error) {
-        triggerAlert('Join Failed', error.code === '23505' ? 'Already in circle.' : error.message, '❌');
+        triggerAlert('Join Failed', error.code === '23505' ? 'You are already in this circle.' : error.message, '❌');
     } else {
-        triggerAlert('Joined!', `Welcome to ${commName}.`, '🤝');
-        await fetchCommunities();
-        await loadMyCircles(); // Refresh sidebar immediately
+        triggerAlert('Joined!', `Welcome to ${commName}. Data synced.`, '🤝');
+        fetchCommunities();
+        loadMyCircles();
     }
 }
 
-// --- 5. GLOBAL HELPERS ---
+// --- 5. INTERFACE HELPERS ---
 function triggerAlert(title, content, emoji = '🔔') {
-    const modal = document.getElementById('globalModal');
-    if (modal) {
-        document.getElementById('modalTitle').innerText = `${emoji} ${title}`;
-        document.getElementById('modalBody').innerHTML = content;
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
+    const container = document.getElementById('modal-container');
+    if (!container) {
+        alert(`${title}: ${content}`); // Final fallback
+        return;
     }
-}
 
-function closeGlobalModal() {
-    const modal = document.getElementById('globalModal');
-    if (modal) modal.classList.replace('flex', 'hidden');
+    const modal = document.createElement('div');
+    modal.className = "pointer-events-auto bg-white border border-slate-200 rounded-[2.5rem] p-8 shadow-2xl animate-slide max-w-xs w-full text-center border-b-4 border-b-cyan-500 mb-4";
+    modal.innerHTML = `
+        <div class="text-4xl mb-4">${emoji}</div>
+        <h2 class="text-[10px] font-black uppercase tracking-widest text-slate-800 mb-2">${title}</h2>
+        <p class="text-[9px] font-bold text-slate-400 uppercase leading-relaxed mb-6">${content}</p>
+        <button onclick="this.parentElement.remove()" class="w-full py-3 bg-slate-900 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-cyan-600 transition-colors">Acknowledge</button>
+    `;
+
+    container.appendChild(modal);
+    setTimeout(() => { if(modal.parentNode) modal.remove(); }, 6000);
 }
 
 function openCreatorModal() {
@@ -235,84 +217,19 @@ function closeCreatorModal() {
     const m = document.getElementById('creatorModal');
     if (m) m.classList.replace('flex', 'hidden');
 }
-// comm.js - Shared logic for communities.html & open_comms.html
 
-// Global helpers
-function triggerAlert(title, content, emoji = '🔔') {
-    const modal = document.getElementById('globalModal');
-    if (modal) {
-        document.getElementById('modalTitle').innerText = `${emoji} ${title}`;
-        document.getElementById('modalBody').innerHTML = content;
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-    }
-}
-
-function closeGlobalModal() {
-    const modal = document.getElementById('globalModal');
-    if (modal) modal.classList.replace('flex', 'hidden');
-}
-
-function openCreatorModal() {
-    document.getElementById('creatorModal')?.classList.replace('hidden', 'flex');
-}
-
-function closeCreatorModal() {
-    document.getElementById('creatorModal')?.classList.replace('flex', 'hidden');
-}
-
-// Image preview (for creator modal)
 function previewCommImage(input) {
     if (input.files && input.files[0]) {
         const reader = new FileReader();
         reader.onload = function(e) {
             const previewBox = document.getElementById('imagePreviewContainer');
-            previewBox.innerHTML = `
-                <img src="${e.target.result}" class="w-full h-full object-cover rounded-3xl">
-                <div class="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 hover:opacity-100 transition rounded-3xl cursor-pointer" onclick="document.getElementById('commFile').click()">
-                    <span class="text-[10px] text-white font-black uppercase tracking-widest">Change Image</span>
-                </div>
-                <input type="file" id="commFile" class="hidden" accept="image/*" onchange="previewCommImage(this)">
-            `;
+            previewBox.innerHTML = `<img src="${e.target.result}" class="w-full h-full object-cover rounded-3xl">`;
         };
         reader.readAsDataURL(input.files[0]);
     }
 }
 
-// Toggle PIN field visibility
 function togglePinField(value) {
     const pinField = document.getElementById('pinField');
     if (pinField) pinField.classList.toggle('hidden', value !== 'admin');
-}
-
-// Refresh animation
-function handleRefresh() {
-    const icon = document.getElementById('refreshIcon');
-    const text = document.getElementById('refreshText');
-    const container = document.getElementById('communityContainer');
-
-    icon?.classList.add('fa-spin');
-    if (container) {
-        container.style.filter = "blur(8px)";
-        container.style.opacity = "0.5";
-    }
-
-    let phases = ["Scanning...", "Finding Pillows...", "Almost there..."];
-    let i = 0;
-    const interval = setInterval(() => {
-        if (text) text.innerText = phases[i % 3];
-        i++;
-    }, 2000);
-
-    setTimeout(() => {
-        clearInterval(interval);
-        icon?.classList.remove('fa-spin');
-        if (text) text.innerText = "Refresh";
-        if (container) {
-            container.style.filter = "none";
-            container.style.opacity = "1";
-        }
-        fetchCommunities();
-        triggerAlert('Scanned', 'Wasteland search complete.', '🔄');
-    }, 6000);
 }
