@@ -37,8 +37,10 @@
                 <div class="flex items-center gap-1 border-r border-slate-700 pr-2 sm:pr-4">
                     <button id="themeToggle" onclick="toggleDarkMode()" class="text-slate-400 hover:text-cyan-500 transition p-2">
                         <i id="themeIcon" class="fa-solid fa-moon text-lg"></i>
-                    </button>
-                  <button onclick="toggleLinkedOutModalV1()" class="text-cyan-400 flex items-center gap-2 group px-3 py-1.5 bg-slate-800/50 rounded-xl border border-slate-700 transition-all hover:bg-slate-700/50 hover:border-cyan-500/50 active:scale-95">
+                 <button
+    id="suitesTriggerBtnV1"
+    class="text-cyan-400 flex items-center gap-2 group px-3 py-1.5 bg-slate-800/50 rounded-xl border border-slate-700 transition-all hover:bg-slate-700/50 hover:border-cyan-500/50 active:scale-95"
+>
     <i class="fa-solid fa-table-cells text-lg"></i>
     <span class="text-[10px] font-black uppercase tracking-wider hidden xs:block">Suites</span>
 </button>
@@ -82,12 +84,11 @@
         </div>
     </header>
 <div id="linkedOutModalOverlayV1" class="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-[999] hidden flex items-center justify-center p-4 transition-all duration-300 opacity-0">
-    
     <div id="linkedOutDropdownV1" class="bg-[#1a2533] w-full max-w-sm rounded-[3rem] p-8 border border-slate-700 shadow-2xl scale-95 opacity-0 transition-all duration-300">
         
             <div class="flex justify-between items-center mb-8 px-2">
                 <h3 class="text-blue-400 text-sm font-black uppercase tracking-widest opacity-50">LinkedOut Suites</h3>
-            <button onclick="toggleLinkedOutModalV1()" class="text-slate-500 hover:text-white text-3xl leading-none font-light hover:scale-110 transition-transform">
+        <button id="suitesCloseBtnV1" class="text-slate-500 hover:text-white text-3xl leading-none font-light hover:scale-110 transition-transform">
                 &times;
             </button>
             </div>
