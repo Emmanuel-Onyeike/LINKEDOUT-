@@ -441,17 +441,17 @@ function closeModal() {
 // =============================================================================
 
 async function syncSidebarCommunities() {
+    const dynamicContainer = document.getElementById('dynamicCommItems');
     const skeleton = document.getElementById('commSkeleton');
     const emptyState = document.getElementById('emptyCommState');
-    const dynamicItems = document.getElementById('dynamicCommItems');
 
-    // Safety check
-    if (!dynamicItems) return;
+    // Safety check: if we aren't on the dashboard, don't run this
+    if (!dynamicContainer) return;
 
-    // 1. Initial State: Show skeleton, hide others
+    // 1. Reset: Show skeleton, clear old items
     if (skeleton) skeleton.classList.remove('hidden');
     if (emptyState) emptyState.classList.add('hidden');
-    dynamicItems.innerHTML = ''; // Clear only the dynamic items
+    dynamicContainer.innerHTML = ''; 
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
@@ -477,16 +477,17 @@ async function syncSidebarCommunities() {
         return;
     }
 
-    // 4. Render only to the dynamicItems div
+    // 4. Render to the dynamic div only
     if (emptyState) emptyState.classList.add('hidden');
 
-    dynamicItems.innerHTML = memberships.map(m => {
+    dynamicItemsMarkup = memberships.map(m => {
         const comm = m.communities;
         if (!comm) return '';
         const isFounder = m.role === 'admin';
 
         return `
-            <div class="community-item flex items-center justify-between p-2 rounded-2xl hover:bg-slate-50 transition-all border border-transparent hover:border-slate-100 group">
+            <div class="flex items-center justify-between p-2 rounded-2xl hover:bg-slate-50 transition-all group cursor-pointer" 
+                 onclick="window.location.href='/PAGES/open_comm.html?id=${comm.id}'">
                 <div class="flex items-center gap-3">
                     <img src="${comm.image_url || '/IMG/Logo.jpeg'}" class="w-9 h-9 rounded-xl object-cover shadow-sm group-hover:rotate-3 transition-transform">
                     <div class="flex flex-col overflow-hidden">
@@ -496,14 +497,13 @@ async function syncSidebarCommunities() {
                         <span class="text-[8px] text-slate-400 font-bold uppercase tracking-tighter">${m.role}</span>
                     </div>
                 </div>
-                <button onclick="window.location.href='/PAGES/open_comm.html?id=${comm.id}'" 
-                        class="bg-white border border-slate-100 text-slate-800 px-3 py-1.5 rounded-xl text-[8px] font-black uppercase hover:bg-cyan-500 hover:text-white transition-all shadow-sm">
-                    Open
-                </button>
+                <i class="fa-solid fa-chevron-right text-[8px] text-slate-300 opacity-0 group-hover:opacity-100 transition-all mr-1"></i>
             </div>
         `;
     }).join('');
-}
+
+    dynamicContainer.innerHTML = dynamicItemsMarkup;
+} // <--- THIS WAS THE TOKEN CAUSING THE ERROR
     // Update only the dynamic part, leaving the EmptyState/Skeleton divs intact
     listWrapper.innerHTML = `
         ${document.getElementById('emptyCommState').outerHTML}
