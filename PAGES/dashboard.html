@@ -258,22 +258,22 @@
                 <input type="file" id="photoUpload" accept="image/*" class="hidden">
                 <input type="file" id="videoUpload" accept="video/*" class="hidden">
            
-                <div class="flex justify-between px-2 pt-2 border-t border-slate-50">
-                    <button onclick="document.getElementById('photoUpload').click()" class="flex items-center gap-2 text-slate-500 text-xs font-black hover:bg-slate-100 px-3 py-2 rounded-lg transition">
-                        <i class="fa-solid fa-image text-blue-400 text-lg"></i>
-                        <span class="hidden sm:inline">Photo</span>
-                    </button>
-                   
-                    <button onclick="document.getElementById('videoUpload').click()" class="flex items-center gap-2 text-slate-500 text-xs font-black hover:bg-slate-100 px-3 py-2 rounded-lg transition">
-                        <i class="fa-solid fa-video text-green-500 text-lg"></i>
-                        <span class="hidden sm:inline">Video</span>
-                    </button>
-                   
-                    <a href="post.html" class="flex items-center gap-2 text-slate-500 text-xs font-black hover:bg-slate-100 px-3 py-2 rounded-lg transition">
-                        <i class="fa-solid fa-newspaper text-orange-400 text-lg"></i>
-                        <span class="hidden sm:inline">Write Article</span>
-                    </a>
-                </div>
+              <div class="flex justify-between px-2 pt-2 border-t border-slate-50">
+    <button onclick="showFeatureAlert('Photo Upload')" class="flex items-center gap-2 text-slate-300 cursor-not-allowed text-xs font-black px-3 py-2 rounded-lg transition">
+        <i class="fa-solid fa-image text-slate-300 text-lg"></i>
+        <span class="hidden sm:inline">Photo</span>
+    </button>
+    
+    <button onclick="showFeatureAlert('Video Upload')" class="flex items-center gap-2 text-slate-300 cursor-not-allowed text-xs font-black px-3 py-2 rounded-lg transition">
+        <i class="fa-solid fa-video text-slate-300 text-lg"></i>
+        <span class="hidden sm:inline">Video</span>
+    </button>
+    
+    <button onclick="showFeatureAlert('Articles')" class="flex items-center gap-2 text-slate-300 cursor-not-allowed text-xs font-black px-3 py-2 rounded-lg transition">
+        <i class="fa-solid fa-newspaper text-slate-300 text-lg"></i>
+        <span class="hidden sm:inline">Write Article</span>
+    </button>
+</div>
             </div>
             <div id="globalModal" class="hidden fixed inset-0 z-[9999] items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm">
                 <div class="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-[modalSlideUp_0.3s_ease-out]">
