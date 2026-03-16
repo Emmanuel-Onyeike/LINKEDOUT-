@@ -78,53 +78,88 @@ async function loadMyCircles() {
 
     if (!list) return;
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
+    // 1. Get Session instead of just User (More reliable for data fetching)
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
         if (skeleton) skeleton.classList.add('hidden');
+        if (emptyState) emptyState.classList.remove('hidden');
         return;
     }
 
-    // Unhide the card container if it was hidden via CSS
-    if (cardContainer) cardContainer.classList.remove('hidden');
+    const user = session.user;
 
+    // 2. Unhide everything immediately to stop CSS from blocking the view
+    if (cardContainer) {
+        cardContainer.classList.remove('hidden');
+        cardContainer.style.display = 'flex'; // Force display
+    }
+
+    // 3. Fetch Memberships with explicit join syntax
+    // Note: If this returns an error, ensure your foreign key in Supabase 
+    // is named 'community_id' pointing to communities.id
     const { data: memberships, error } = await supabase
         .from('community_members')
-        .select(`role, communities (id, name, image_url)`)
+        .select(`
+            role,
+            communities!community_members_community_id_fkey (
+                id,
+                name,
+                image_url
+            )
+        `)
         .eq('user_id', user.id);
 
+    // 4. Clear Skeletons
     if (skeleton) skeleton.classList.add('hidden');
 
-    if (error || !memberships || memberships.length === 0) {
+    if (error) {
+        console.error("Supabase Error:", error.message);
+        list.innerHTML = `<p class="text-[8px] text-red-400 uppercase p-2">Sync Error: Check Console</p>`;
+        return;
+    }
+
+    // 5. Handle Empty State
+    if (!memberships || memberships.length === 0) {
         if (emptyState) emptyState.classList.remove('hidden');
+        list.innerHTML = ''; 
         return;
     }
 
     if (emptyState) emptyState.classList.add('hidden');
 
+    // 6. Final Render Logic
     list.innerHTML = memberships.map(m => {
+        // Handle cases where the community data might be nested or null
         const comm = m.communities;
         if (!comm) return '';
+        
         const badge = m.role === 'admin' ? '<i class="fa-solid fa-crown text-[8px] text-amber-400 ml-1"></i>' : '';
+        const roleText = m.role === 'admin' ? 'Founder' : 'Member';
 
         return `
             <div class="group flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 transition-all cursor-pointer" 
                  onclick="window.location.href='/PAGES/open_comm.html?id=${comm.id}'">
                 <div class="flex items-center gap-3">
-                    <img src="${comm.image_url || '/IMG/Logo.jpeg'}" class="w-8 h-8 rounded-lg object-cover shadow-sm group-hover:rotate-3 transition-transform">
+                    <div class="w-8 h-8 shrink-0 overflow-hidden rounded-lg shadow-sm">
+                        <img src="${comm.image_url || '/IMG/Logo.jpeg'}" 
+                             class="w-full h-full object-cover group-hover:scale-110 transition-transform"
+                             onerror="this.src='/IMG/Logo.jpeg'">
+                    </div>
                     <div class="flex flex-col">
                         <span class="text-[10px] font-black uppercase text-slate-700 tracking-tighter flex items-center">
                             ${comm.name} ${badge}
                         </span>
                         <span class="text-[8px] text-slate-400 font-medium uppercase tracking-widest">
-                            ${m.role === 'admin' ? 'Founder' : 'Member'}
+                            ${roleText}
                         </span>
                     </div>
                 </div>
                 <i class="fa-solid fa-chevron-right text-[8px] text-slate-300 opacity-0 group-hover:opacity-100 transition-all mr-1"></i>
             </div>`;
     }).join('');
-}
 
+    console.log("Terminal: Sidebar successfully populated.");
+}
 // --- 3. CREATE COLONY ---
 async function handleCreateColony() {
     const name = document.getElementById('commName')?.value;
