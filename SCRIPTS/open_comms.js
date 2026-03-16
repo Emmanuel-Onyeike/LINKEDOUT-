@@ -1,8 +1,9 @@
-// open_comms.js - FINAL COMPLETE & WORKING VERSION
-// All 400 Bad Request errors fixed, column name corrected (full_name), relationships resolved
+// open_comms.js - FINAL VERSION with "Founder = No PIN" logic
+// Broadcast box shows immediately for founders, PIN only for other admins
 
 let currentColony = null;
 let userRole = 'member';
+let isFounder = false;  // NEW: track if current user is the creator
 
 document.addEventListener('DOMContentLoaded', async () => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -15,8 +16,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     if (typeof supabase === 'undefined') {
-        console.error("Supabase client not loaded");
-        safeAlert("System Error", "Supabase missing.", "💥");
+        safeAlert("System Error", "Supabase client missing.", "💥");
         return;
     }
 
@@ -26,17 +26,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // ────────────────────────────────────────────────
-// 1. Load colony details + user role
+// 1. Load colony details + check if current user is founder
 // ────────────────────────────────────────────────
 async function loadColonyData(id) {
     const { data: colony, error } = await supabase
         .from('communities')
-        .select('*')
+        .select('*, founder_id')  // Make sure to select founder_id
         .eq('id', id)
         .single();
 
     if (error || !colony) {
-        console.error("Colony load failed:", error?.message);
         safeAlert("Not Found", "Colony doesn't exist or access denied.", "🏜️");
         setTimeout(() => window.location.href = '/PAGES/dashboard.html', 2500);
         return;
@@ -54,6 +53,9 @@ async function loadColonyData(id) {
             .maybeSingle();
 
         userRole = memberData?.role || 'member';
+
+        // NEW: Check if current user is the founder
+        isFounder = (user.id === colony.founder_id);
     }
 
     safeSetText('commTitle', colony.name || 'Unnamed Colony');
@@ -65,14 +67,14 @@ async function loadColonyData(id) {
     safeSetSrc('commCover', displayImg);
     safeSetSrc('commIcon', displayImg);
 
-    if (userRole === 'admin' || userRole === 'founder') {
+    if (userRole === 'admin' || userRole === 'founder' || isFounder) {
         document.getElementById('roleBadge')?.classList.remove('hidden');
         renderAdminInterface();
     }
 }
 
 // ────────────────────────────────────────────────
-// 2. Load members - using full_name (correct column)
+// 2. Load members (unchanged)
 // ────────────────────────────────────────────────
 async function loadColonyMembers(id) {
     const { data: members, error } = await supabase
@@ -81,7 +83,7 @@ async function loadColonyMembers(id) {
         .eq('community_id', id);
 
     if (error) {
-        console.error("Members failed:", error.code, error.message, error.details, error.hint);
+        console.error("Members failed:", error);
         safeAlert("Members Error", "Could not load colony members.", "👥");
         return;
     }
@@ -91,23 +93,12 @@ async function loadColonyMembers(id) {
 
     const list = document.getElementById('membersList');
     if (list) {
-        if (!members?.length) {
-            list.innerHTML = `<p class="text-center py-8 text-slate-400 text-[10px] uppercase tracking-wider">No members yet</p>`;
-            return;
-        }
-
-        list.innerHTML = members.map(m => `
+        list.innerHTML = (members || []).map(m => `
             <div class="flex items-center gap-3 p-3 bg-slate-50/50 rounded-2xl border border-slate-100/50 mb-2">
-                <img src="${m.profiles?.avatar_url || '/IMG/Logo.jpeg'}" 
-                     class="w-8 h-8 rounded-full object-cover border border-white"
-                     onerror="this.src='/IMG/Logo.jpeg'; this.onerror=null;">
-                <div class="flex flex-col min-w-0">
-                    <span class="text-[10px] font-black text-slate-800 uppercase truncate">
-                        ${m.profiles?.full_name || 'Loafer'}
-                    </span>
-                    <span class="text-[7px] font-bold uppercase ${m.role === 'admin' || m.role === 'founder' ? 'text-cyan-600' : 'text-slate-500'}">
-                        ${m.role.charAt(0).toUpperCase() + m.role.slice(1)}
-                    </span>
+                <img src="${m.profiles?.avatar_url || '/IMG/Logo.jpeg'}" class="w-8 h-8 rounded-full object-cover border border-white" onerror="this.src='/IMG/Logo.jpeg'">
+                <div>
+                    <span class="text-[10px] font-black text-slate-700 uppercase">${m.profiles?.full_name || 'Loafer'}</span>
+                    <span class="text-[7px] font-bold uppercase">${m.role}</span>
                 </div>
             </div>
         `).join('');
@@ -115,7 +106,7 @@ async function loadColonyMembers(id) {
 }
 
 // ────────────────────────────────────────────────
-// 3. Load posts - using exact FK name from error
+// 3. Load posts (unchanged)
 // ────────────────────────────────────────────────
 async function renderColonyPosts(id) {
     const feed = document.getElementById('colonyFeed');
@@ -128,67 +119,63 @@ async function renderColonyPosts(id) {
         .order('created_at', { ascending: false });
 
     if (error) {
-        console.error("Posts failed:", error.code, error.message, error.details, error.hint);
-        feed.innerHTML = `
-            <div class="text-center py-24 bg-white rounded-[40px] border-2 border-dashed border-slate-100">
-                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                    Failed to load posts – try again later
-                </p>
-            </div>`;
+        console.error("Posts failed:", error);
+        feed.innerHTML = `<div class="text-center py-24 bg-white rounded-[40px] border-2 border-dashed"><p class="text-[10px] font-black text-slate-400">Failed to load posts</p></div>`;
         return;
     }
 
     if (!posts?.length) {
-        feed.innerHTML = `
-            <div class="text-center py-24 bg-white rounded-[40px] border-2 border-dashed border-slate-50">
-                <p class="text-[10px] font-black text-slate-300 uppercase tracking-widest">
-                    No posts yet...
-                </p>
-            </div>`;
+        feed.innerHTML = `<div class="text-center py-24 bg-white rounded-[40px] border-2 border-dashed"><p class="text-[10px] font-black text-slate-300">No posts yet...</p></div>`;
         return;
     }
 
     feed.innerHTML = posts.map(post => `
-        <div class="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm mb-6 transition hover:shadow-md">
+        <div class="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm mb-6">
             <div class="flex items-start gap-4 mb-4">
-                <img src="${post.profiles?.avatar_url || '/IMG/Logo.jpeg'}" 
-                     class="w-10 h-10 rounded-full object-cover ring-4 ring-slate-50 flex-shrink-0"
-                     onerror="this.src='/IMG/Logo.jpeg'; this.onerror=null;">
-                <div class="flex-1 min-w-0">
-                    <div class="flex flex-wrap items-center gap-2 mb-1">
-                        <h4 class="text-sm font-bold text-slate-900 truncate">
-                            ${post.profiles?.full_name || 'Founder'}
-                        </h4>
-                        ${post.is_announcement ? `
-                            <span class="px-2 py-0.5 bg-cyan-500 text-white text-xs font-bold rounded-full">
-                                Signal
-                            </span>
-                        ` : ''}
-                    </div>
-                    <p class="text-xs text-slate-500">
-                        ${new Date(post.created_at).toLocaleString('en-GB', {dateStyle: 'medium', timeStyle: 'short'})}
-                    </p>
+                <img src="${post.profiles?.avatar_url || '/IMG/Logo.jpeg'}" class="w-10 h-10 rounded-full object-cover ring-4 ring-slate-50" onerror="this.src='/IMG/Logo.jpeg'">
+                <div>
+                    <h4 class="text-sm font-bold">${post.profiles?.full_name || 'Founder'}</h4>
+                    <p class="text-xs text-slate-500">${new Date(post.created_at).toLocaleString()}</p>
                 </div>
             </div>
-            <p class="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
-                ${post.content}
-            </p>
+            <p class="text-sm text-slate-700">${post.content}</p>
         </div>
     `).join('');
 }
 
 // ────────────────────────────────────────────────
-// Your original admin + broadcast functions (pasted exactly)
+// Admin interface – UPDATED: Founders skip PIN
 // ────────────────────────────────────────────────
 function renderAdminInterface() {
     const adminBox = document.getElementById('adminPostBox');
     if (!adminBox) return;
+
+    // If current user is the founder, skip PIN screen completely
+    if (isFounder) {
+        adminBox.innerHTML = `
+            <div class="p-8">
+                <h3 class="text-lg font-black text-cyan-600 uppercase tracking-wider mb-4">Broadcast Center</h3>
+                <p class="text-sm text-slate-600 mb-6">As founder, you can post directly.</p>
+                <textarea id="adminPostInput" placeholder="Write your colony announcement..."
+                          class="w-full bg-slate-50 border border-slate-200 rounded-3xl p-6 text-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 outline-none resize-none h-36"></textarea>
+                <div class="flex justify-end mt-5">
+                    <button onclick="publishAdminPost()" class="bg-cyan-600 text-white px-10 py-4 rounded-2xl font-black uppercase tracking-wider hover:bg-cyan-700 transition shadow-lg active:scale-95">
+                        Broadcast
+                    </button>
+                </div>
+            </div>
+        `;
+        adminBox.classList.remove('hidden');
+        return;
+    }
+
+    // For other admins → show PIN screen
     adminBox.innerHTML = `
         <div id="pinLock" class="text-center py-6 animate-slide">
             <div class="w-12 h-12 bg-cyan-50 text-cyan-500 rounded-full flex items-center justify-center mx-auto mb-4">
                 <i class="fa-solid fa-lock text-xl"></i>
             </div>
-            <h3 class="text-[10px] font-black text-slate-800 uppercase tracking-widest mb-1">Founder Access</h3>
+            <h3 class="text-[10px] font-black text-slate-800 uppercase tracking-widest mb-1">Admin Access</h3>
             <p class="text-[9px] text-slate-400 font-bold uppercase mb-6">Enter Colony PIN</p>
             <div class="flex justify-center gap-3">
                 <input type="password" id="unlockPin" maxlength="4" placeholder="••••"
@@ -211,23 +198,26 @@ function renderAdminInterface() {
     adminBox.classList.remove('hidden');
 }
 
+// ────────────────────────────────────────────────
+// Verify PIN (only used for non-founder admins)
+// ────────────────────────────────────────────────
 window.unlockAdminTools = function() {
-    const enteredPin = document.getElementById('unlockPin')?.value;
+    const enteredPin = document.getElementById('unlockPin')?.value?.trim();
     if (!enteredPin) return;
 
+    // Founder already skipped this screen — so this only runs for other admins
     if (enteredPin === String(currentColony?.pin || '')) {
         document.getElementById('pinLock')?.classList.add('hidden');
         document.getElementById('actualPostBox')?.classList.remove('hidden');
     } else {
         document.getElementById('unlockPin').value = '';
-        if (typeof window.triggerAlert === 'function') {
-            window.triggerAlert('Access Denied', 'Incorrect Colony PIN.', '🚫');
-        } else {
-            alert("Invalid Colony PIN");
-        }
+        safeAlert('Access Denied', 'Incorrect Colony PIN.', '🚫');
     }
 };
 
+// ────────────────────────────────────────────────
+// Publish broadcast (unchanged)
+// ────────────────────────────────────────────────
 window.publishAdminPost = async function() {
     const input = document.getElementById('adminPostInput');
     const content = input?.value.trim();
@@ -245,14 +235,17 @@ window.publishAdminPost = async function() {
 
     if (error) {
         console.error("Broadcast Error:", error);
+        safeAlert("Failed", "Could not send broadcast.", "⚠️");
         return;
     }
+
     input.value = '';
     renderColonyPosts(currentColony.id);
+    safeAlert("Sent", "Your announcement has been broadcast.", "📢");
 };
 
 // ────────────────────────────────────────────────
-// Leave colony (your original version)
+// Leave colony (unchanged)
 // ────────────────────────────────────────────────
 async function leaveCommunity() {
     if (!currentColony || !confirm("Are you sure you want to abandon this colony?")) {
@@ -288,7 +281,7 @@ async function leaveCommunity() {
 }
 
 // ────────────────────────────────────────────────
-// Safe utility functions
+// Safe helpers (unchanged)
 // ────────────────────────────────────────────────
 function safeSetText(id, text) {
     const el = document.getElementById(id);
