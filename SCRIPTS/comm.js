@@ -191,3 +191,39 @@ async function loadMyCircles() {
         }).join('');
     }
 }
+// --- 5. REFRESH LOGIC (Database Sync) ---
+async function handleRefresh() {
+    const icon = document.getElementById('refreshIcon');
+    const text = document.getElementById('refreshText');
+    const container = document.getElementById('communityContainer');
+    
+    if (!icon || !text) return;
+
+    // Start Animation
+    icon.classList.add('fa-spin');
+    text.innerText = "Scanning...";
+    container.style.opacity = "0.5";
+    container.style.filter = "blur(4px)";
+
+    try {
+        // Re-run the fetch functions to get new data from Supabase
+        await fetchCommunities();
+        await loadMyCircles();
+        
+        // Brief delay so the user sees the "Work" being done
+        setTimeout(() => {
+            icon.classList.remove('fa-spin');
+            text.innerText = "Refresh";
+            container.style.opacity = "1";
+            container.style.filter = "none";
+            
+            // Your Dec 21st rule centered alert
+            triggerAlert('Signals Locked', 'Community list is now up to date.', '🔄');
+        }, 1500);
+
+    } catch (err) {
+        console.error("Refresh failed:", err);
+        icon.classList.remove('fa-spin');
+        text.innerText = "Refresh Failed";
+    }
+}
