@@ -235,3 +235,84 @@ function closeCreatorModal() {
     const m = document.getElementById('creatorModal');
     if (m) m.classList.replace('flex', 'hidden');
 }
+// comm.js - Shared logic for communities.html & open_comms.html
+
+// Global helpers
+function triggerAlert(title, content, emoji = '🔔') {
+    const modal = document.getElementById('globalModal');
+    if (modal) {
+        document.getElementById('modalTitle').innerText = `${emoji} ${title}`;
+        document.getElementById('modalBody').innerHTML = content;
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+}
+
+function closeGlobalModal() {
+    const modal = document.getElementById('globalModal');
+    if (modal) modal.classList.replace('flex', 'hidden');
+}
+
+function openCreatorModal() {
+    document.getElementById('creatorModal')?.classList.replace('hidden', 'flex');
+}
+
+function closeCreatorModal() {
+    document.getElementById('creatorModal')?.classList.replace('flex', 'hidden');
+}
+
+// Image preview (for creator modal)
+function previewCommImage(input) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const previewBox = document.getElementById('imagePreviewContainer');
+            previewBox.innerHTML = `
+                <img src="${e.target.result}" class="w-full h-full object-cover rounded-3xl">
+                <div class="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 hover:opacity-100 transition rounded-3xl cursor-pointer" onclick="document.getElementById('commFile').click()">
+                    <span class="text-[10px] text-white font-black uppercase tracking-widest">Change Image</span>
+                </div>
+                <input type="file" id="commFile" class="hidden" accept="image/*" onchange="previewCommImage(this)">
+            `;
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+// Toggle PIN field visibility
+function togglePinField(value) {
+    const pinField = document.getElementById('pinField');
+    if (pinField) pinField.classList.toggle('hidden', value !== 'admin');
+}
+
+// Refresh animation
+function handleRefresh() {
+    const icon = document.getElementById('refreshIcon');
+    const text = document.getElementById('refreshText');
+    const container = document.getElementById('communityContainer');
+
+    icon?.classList.add('fa-spin');
+    if (container) {
+        container.style.filter = "blur(8px)";
+        container.style.opacity = "0.5";
+    }
+
+    let phases = ["Scanning...", "Finding Pillows...", "Almost there..."];
+    let i = 0;
+    const interval = setInterval(() => {
+        if (text) text.innerText = phases[i % 3];
+        i++;
+    }, 2000);
+
+    setTimeout(() => {
+        clearInterval(interval);
+        icon?.classList.remove('fa-spin');
+        if (text) text.innerText = "Refresh";
+        if (container) {
+            container.style.filter = "none";
+            container.style.opacity = "1";
+        }
+        fetchCommunities();
+        triggerAlert('Scanned', 'Wasteland search complete.', '🔄');
+    }, 6000);
+}
