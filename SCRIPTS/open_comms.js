@@ -208,3 +208,24 @@ async function renderColonyPosts(id) {
         </div>
     `).join('');
 }
+// global.js snippet
+window.triggerAlert = function(title, message, icon = '🔔') {
+    const container = document.getElementById('modal-container');
+    if (!container) return;
+
+    const modal = document.createElement('div');
+    modal.className = "pointer-events-auto bg-white border border-slate-200 rounded-[2.5rem] p-8 shadow-2xl animate-slide max-w-xs w-full text-center border-b-4 border-b-cyan-500";
+    
+    modal.innerHTML = `
+        <div class="text-4xl mb-4">${icon}</div>
+        <h2 class="text-xs font-black uppercase tracking-widest text-slate-800 mb-2">${title}</h2>
+        <p class="text-[10px] font-bold text-slate-400 uppercase leading-relaxed mb-6">${message}</p>
+        <button onclick="this.parentElement.remove()" class="w-full py-3 bg-slate-900 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-cyan-600 transition-colors">Acknowledge</button>
+    `;
+
+    container.innerHTML = ''; // Clear previous alerts
+    container.appendChild(modal);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => { if(modal.parentNode) modal.remove(); }, 5000);
+};
