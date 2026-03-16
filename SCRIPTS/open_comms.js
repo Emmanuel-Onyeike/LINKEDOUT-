@@ -11,12 +11,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
     
+    // Ensure Supabase is available from global.js
+    if (typeof supabase === 'undefined') {
+        console.error("Terminal: Supabase instance not found.");
+        return;
+    }
+
     await loadColonyData(colonyId);
     await loadColonyMembers(colonyId);
 });
 
 async function loadColonyData(id) {
-    // 1. Fetch Colony Details from Supabase
+    // 1. Fetch Colony Details
     const { data: colony, error } = await supabase
         .from('communities')
         .select('*')
@@ -31,7 +37,7 @@ async function loadColonyData(id) {
 
     currentColony = colony;
 
-    // 2. Check Current User Role in this Colony
+    // 2. Determine User Role
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
         const { data: memberData } = await supabase
@@ -39,12 +45,12 @@ async function loadColonyData(id) {
             .select('role')
             .eq('community_id', id)
             .eq('user_id', user.id)
-            .single();
+            .maybeSingle(); // maybeSingle prevents errors if user isn't a member yet
         
         userRole = memberData?.role || 'member';
     }
 
-    // 3. Update UI Branding
+    // 3. Update UI
     document.getElementById('commTitle').innerText = colony.name;
     document.getElementById('commVibe').innerText = colony.description ? `Vibe: ${colony.description.substring(0, 40)}...` : 'Vibe: Chill';
     document.getElementById('commFullDesc').innerText = colony.description || 'No description provided.';
@@ -54,7 +60,7 @@ async function loadColonyData(id) {
     document.getElementById('commCover').src = displayImg;
     document.getElementById('commIcon').src = displayImg;
 
-    // 4. Admin Interface Logic
+    // 4. Admin View Trigger
     if (userRole === 'admin') {
         const badge = document.getElementById('roleBadge');
         if (badge) badge.classList.remove('hidden');
@@ -73,7 +79,10 @@ async function loadColonyMembers(id) {
         `)
         .eq('community_id', id);
 
-    if (error) return;
+    if (error) {
+        console.error("Member Load Error:", error);
+        return;
+    }
 
     const list = document.getElementById('membersList');
     const countLabel = document.getElementById('occupantCount');
@@ -84,11 +93,11 @@ async function loadColonyMembers(id) {
         totalLabel.innerText = members.length;
         
         list.innerHTML = members.map(m => `
-            <div class="flex items-center gap-3 p-2">
-                <img src="${m.profiles?.avatar_url || '/IMG/Logo.jpeg'}" class="w-8 h-8 rounded-full object-cover border border-slate-100">
+            <div class="flex items-center gap-3 p-3 bg-slate-50/50 rounded-2xl border border-slate-100/50 mb-2">
+                <img src="${m.profiles?.avatar_url || '/IMG/Logo.jpeg'}" class="w-8 h-8 rounded-full object-cover border border-white shadow-sm">
                 <div class="flex flex-col">
                     <span class="text-[10px] font-black text-slate-700 uppercase">${m.profiles?.username || 'Loafer'}</span>
-                    <span class="text-[7px] font-bold text-slate-400 uppercase">${m.role}</span>
+                    <span class="text-[7px] font-bold text-cyan-500 uppercase tracking-tight">${m.role}</span>
                 </div>
             </div>
         `).join('');
@@ -100,43 +109,45 @@ function renderAdminInterface() {
     if (!adminBox) return;
 
     adminBox.innerHTML = `
-        <div id="pinLock" class="text-center py-4 animate-slide">
+        <div id="pinLock" class="text-center py-6 animate-slide">
             <div class="w-12 h-12 bg-cyan-50 text-cyan-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                <i class="fa-solid fa-shield-halved text-xl"></i>
+                <i class="fa-solid fa-lock text-xl"></i>
             </div>
-            <h3 class="text-[10px] font-black text-slate-800 uppercase tracking-widest mb-1">Founder Verification</h3>
-            <p class="text-[9px] text-slate-400 font-bold uppercase mb-6">Enter Admin PIN to broadcast</p>
+            <h3 class="text-[10px] font-black text-slate-800 uppercase tracking-widest mb-1">Founder Access</h3>
+            <p class="text-[9px] text-slate-400 font-bold uppercase mb-6">Enter Colony PIN</p>
             <div class="flex justify-center gap-3">
                 <input type="password" id="unlockPin" maxlength="4" placeholder="••••" 
-                    class="w-28 bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 text-center text-lg font-black tracking-[0.5em] focus:border-cyan-500 outline-none transition-all">
-                <button onclick="unlockAdminTools()" class="bg-slate-900 text-white px-8 py-4 rounded-2xl text-[10px] font-black uppercase hover:bg-cyan-600 transition shadow-lg">Verify</button>
+                    class="w-28 bg-slate-100 border-none rounded-2xl p-4 text-center text-lg font-black tracking-[0.5em] focus:ring-2 focus:ring-cyan-500 outline-none transition-all">
+                <button onclick="unlockAdminTools()" class="bg-slate-900 text-white px-8 py-4 rounded-2xl text-[10px] font-black uppercase hover:bg-cyan-600 transition shadow-lg active:scale-95">Verify</button>
             </div>
         </div>
         <div id="actualPostBox" class="hidden animate-slide">
-            <textarea id="adminPostInput" placeholder="What's the word, Founder?" 
+            <div class="flex items-center gap-2 mb-4">
+                 <span class="w-2 h-2 bg-cyan-500 rounded-full animate-pulse"></span>
+                 <span class="text-[9px] font-black text-cyan-600 uppercase tracking-widest">Live Broadcast System</span>
+            </div>
+            <textarea id="adminPostInput" placeholder="Broadcast a signal to the colony..." 
                 class="w-full bg-slate-50 border-none rounded-[30px] p-6 text-sm font-medium focus:ring-2 focus:ring-cyan-500 h-32 resize-none outline-none"></textarea>
             <div class="flex justify-end mt-4">
-                <button onclick="publishAdminPost()" class="bg-slate-900 text-white px-10 py-4 rounded-2xl text-[10px] font-black uppercase hover:bg-cyan-600 transition-all shadow-lg">Send Broadcast</button>
+                <button onclick="publishAdminPost()" class="bg-slate-900 text-white px-10 py-4 rounded-2xl text-[10px] font-black uppercase hover:bg-cyan-600 transition-all shadow-lg active:scale-95">Send Signal</button>
             </div>
         </div>
     `;
     adminBox.classList.remove('hidden');
 }
 
-function unlockAdminTools() {
+window.unlockAdminTools = function() {
     const enteredPin = document.getElementById('unlockPin').value;
-    // Assuming 'pin' is a column in your 'communities' table
     if (enteredPin === String(currentColony.pin)) {
         document.getElementById('pinLock').classList.add('hidden');
         document.getElementById('actualPostBox').classList.remove('hidden');
-        if (window.triggerAlert) triggerAlert('Access Granted', 'Broadcast systems online.', '🔓');
     } else {
         document.getElementById('unlockPin').value = '';
-        if (window.triggerAlert) triggerAlert('Access Denied', 'Invalid PIN code.', '🚫');
+        alert("Invalid Colony PIN"); // Fallback if custom alerts aren't ready
     }
-}
+};
 
-async function publishAdminPost() {
+window.publishAdminPost = async function() {
     const input = document.getElementById('adminPostInput');
     const content = input.value.trim();
     if (!content) return;
@@ -153,13 +164,13 @@ async function publishAdminPost() {
         }]);
 
     if (error) {
-        if (window.triggerAlert) triggerAlert('Error', 'Failed to send signal.', '📡');
+        console.error("Broadcast Error:", error);
         return;
     }
 
     input.value = '';
     renderColonyPosts(currentColony.id);
-}
+};
 
 async function renderColonyPosts(id) {
     const feed = document.getElementById('colonyFeed');
@@ -174,7 +185,11 @@ async function renderColonyPosts(id) {
         .order('created_at', { ascending: false });
 
     if (error || !posts || posts.length === 0) {
-        feed.innerHTML = `<div class="text-center py-24 bg-white rounded-[40px] border-2 border-dashed border-slate-50"><p class="text-[10px] font-black text-slate-300 uppercase tracking-widest">Awaiting founder signals...</p></div>`;
+        feed.innerHTML = `
+            <div class="text-center py-24 bg-white rounded-[40px] border-2 border-dashed border-slate-100">
+                <i class="fa-solid fa-satellite-dish text-slate-200 text-4xl mb-4"></i>
+                <p class="text-[10px] font-black text-slate-300 uppercase tracking-widest">No transmissions active in this sector.</p>
+            </div>`;
         return;
     }
 
@@ -185,7 +200,7 @@ async function renderColonyPosts(id) {
                 <div>
                     <div class="flex items-center gap-2">
                         <h4 class="text-xs font-black text-slate-800 uppercase">${post.profiles?.username || 'Founder'}</h4>
-                        ${post.is_announcement ? '<span class="px-2 py-0.5 bg-cyan-500 text-white text-[7px] font-black uppercase rounded-md">Founder</span>' : ''}
+                        ${post.is_announcement ? '<span class="px-2 py-0.5 bg-cyan-500 text-white text-[7px] font-black uppercase rounded-md shadow-sm shadow-cyan-200">Founder</span>' : ''}
                     </div>
                     <p class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">${new Date(post.created_at).toLocaleDateString()}</p>
                 </div>
