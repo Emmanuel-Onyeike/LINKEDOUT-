@@ -1,8 +1,8 @@
-// open_comms.js - Final Integrated Version
-
+// open_comms.js - Live Database Integrated Version
 let currentColony = null;
+let userRole = 'member';
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     const urlParams = new URLSearchParams(window.location.search);
     const colonyId = urlParams.get('id');
     
@@ -11,83 +11,112 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
     
-    loadColonyData(colonyId);
+    await loadColonyData(colonyId);
+    await loadColonyMembers(colonyId);
 });
 
-function loadColonyData(id) {
-    const allComms = JSON.parse(localStorage.getItem('userCommunities')) || [];
-    
-    // 1. FIND COLONY (Using String conversion to prevent ID mismatch)
-    currentColony = allComms.find(c => String(c.id) === String(id));
+async function loadColonyData(id) {
+    // 1. Fetch Colony Details from Supabase
+    const { data: colony, error } = await supabase
+        .from('communities')
+        .select('*')
+        .eq('id', id)
+        .single();
 
-    // 2. THE GUARD: Stop if colony is null to prevent "Cannot read properties of null"
-    if (!currentColony) {
+    if (error || !colony) {
         console.error("Colony not found:", id);
-        alert("Colony not found! Returning to base.");
         window.location.href = '/PAGES/dashboard.html';
         return;
     }
 
-    // --- 3. UPDATE BRANDING & UI ---
-    document.getElementById('commTitle').innerText = currentColony.name;
-    document.getElementById('commVibe').innerText = `Vibe: ${currentColony.desc.substring(0, 30)}...`;
-    document.getElementById('commFullDesc').innerText = currentColony.desc;
-    document.getElementById('maxLimit').innerText = currentColony.maxUsers;
+    currentColony = colony;
+
+    // 2. Check Current User Role in this Colony
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+        const { data: memberData } = await supabase
+            .from('community_members')
+            .select('role')
+            .eq('community_id', id)
+            .eq('user_id', user.id)
+            .single();
+        
+        userRole = memberData?.role || 'member';
+    }
+
+    // 3. Update UI Branding
+    document.getElementById('commTitle').innerText = colony.name;
+    document.getElementById('commVibe').innerText = colony.description ? `Vibe: ${colony.description.substring(0, 40)}...` : 'Vibe: Chill';
+    document.getElementById('commFullDesc').innerText = colony.description || 'No description provided.';
+    document.getElementById('maxLimit').innerText = colony.max_users || 100;
     
-    const displayImg = currentColony.image || '/IMG/Logo.jpeg';
+    const displayImg = colony.image_url || '/IMG/Logo.jpeg';
     document.getElementById('commCover').src = displayImg;
     document.getElementById('commIcon').src = displayImg;
 
-    // --- 4. IDENTITY & ADMIN CHECK ---
-    const adminBox = document.getElementById('adminPostBox');
-    
-    // Check if the user created this as an 'admin' role
-    if (currentColony.role === 'admin') {
+    // 4. Admin Interface Logic
+    if (userRole === 'admin') {
+        const badge = document.getElementById('roleBadge');
+        if (badge) badge.classList.remove('hidden');
         renderAdminInterface(); 
-    } else {
-        // If they are a normal user or no role exists, hide the post box completely
-        if (adminBox) adminBox.classList.add('hidden');
     }
 
-    renderColonyPosts();
+    renderColonyPosts(id);
 }
 
-// Separate function to handle the PIN Lock UI
+async function loadColonyMembers(id) {
+    const { data: members, error } = await supabase
+        .from('community_members')
+        .select(`
+            role,
+            profiles:user_id ( username, avatar_url )
+        `)
+        .eq('community_id', id);
+
+    if (error) return;
+
+    const list = document.getElementById('membersList');
+    const countLabel = document.getElementById('occupantCount');
+    const totalLabel = document.getElementById('memberCount');
+
+    if (list) {
+        countLabel.innerText = members.length;
+        totalLabel.innerText = members.length;
+        
+        list.innerHTML = members.map(m => `
+            <div class="flex items-center gap-3 p-2">
+                <img src="${m.profiles?.avatar_url || '/IMG/Logo.jpeg'}" class="w-8 h-8 rounded-full object-cover border border-slate-100">
+                <div class="flex flex-col">
+                    <span class="text-[10px] font-black text-slate-700 uppercase">${m.profiles?.username || 'Loafer'}</span>
+                    <span class="text-[7px] font-bold text-slate-400 uppercase">${m.role}</span>
+                </div>
+            </div>
+        `).join('');
+    }
+}
+
 function renderAdminInterface() {
     const adminBox = document.getElementById('adminPostBox');
     if (!adminBox) return;
 
     adminBox.innerHTML = `
-        <div id="pinLock" class="bg-white p-8 rounded-[40px] border-2 border-dashed border-slate-100 text-center animate-slide">
+        <div id="pinLock" class="text-center py-4 animate-slide">
             <div class="w-12 h-12 bg-cyan-50 text-cyan-500 rounded-full flex items-center justify-center mx-auto mb-4">
                 <i class="fa-solid fa-shield-halved text-xl"></i>
             </div>
             <h3 class="text-[10px] font-black text-slate-800 uppercase tracking-widest mb-1">Founder Verification</h3>
-            <p class="text-[9px] text-slate-400 font-bold uppercase mb-6">Enter your 4-digit Admin PIN to broadcast</p>
-            
+            <p class="text-[9px] text-slate-400 font-bold uppercase mb-6">Enter Admin PIN to broadcast</p>
             <div class="flex justify-center gap-3">
                 <input type="password" id="unlockPin" maxlength="4" placeholder="••••" 
                     class="w-28 bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 text-center text-lg font-black tracking-[0.5em] focus:border-cyan-500 outline-none transition-all">
-                <button onclick="unlockAdminTools()" 
-                    class="bg-slate-900 text-white px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-cyan-600 transition active:scale-95 shadow-lg shadow-slate-200">
-                    Verify
-                </button>
+                <button onclick="unlockAdminTools()" class="bg-slate-900 text-white px-8 py-4 rounded-2xl text-[10px] font-black uppercase hover:bg-cyan-600 transition shadow-lg">Verify</button>
             </div>
         </div>
-
         <div id="actualPostBox" class="hidden animate-slide">
-            <div class="bg-white p-6 rounded-[40px] border-2 border-cyan-500/10 shadow-xl shadow-cyan-500/5">
-                <div class="flex items-center gap-2 mb-4">
-                    <span class="px-2 py-1 bg-cyan-500 text-white text-[7px] font-black uppercase rounded-md">Authorized Founder</span>
-                    <span class="text-[9px] font-bold text-slate-300 uppercase italic">@${currentColony.assignedAdmin || 'Admin'}</span>
-                </div>
-                <textarea id="adminPostInput" placeholder="What's the word, Founder?" 
-                    class="w-full bg-slate-50 border-none rounded-[30px] p-6 text-sm font-medium focus:ring-2 focus:ring-cyan-500 h-32 resize-none outline-none"></textarea>
-                <div class="flex justify-end mt-4">
-                    <button onclick="publishAdminPost()" class="bg-slate-900 text-white px-10 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-cyan-600 transition-all shadow-lg">
-                        Send Broadcast
-                    </button>
-                </div>
+            <textarea id="adminPostInput" placeholder="What's the word, Founder?" 
+                class="w-full bg-slate-50 border-none rounded-[30px] p-6 text-sm font-medium focus:ring-2 focus:ring-cyan-500 h-32 resize-none outline-none"></textarea>
+            <div class="flex justify-end mt-4">
+                <button onclick="publishAdminPost()" class="bg-slate-900 text-white px-10 py-4 rounded-2xl text-[10px] font-black uppercase hover:bg-cyan-600 transition-all shadow-lg">Send Broadcast</button>
             </div>
         </div>
     `;
@@ -96,82 +125,72 @@ function renderAdminInterface() {
 
 function unlockAdminTools() {
     const enteredPin = document.getElementById('unlockPin').value;
-    
-    if (enteredPin === String(currentColony.adminPin)) {
+    // Assuming 'pin' is a column in your 'communities' table
+    if (enteredPin === String(currentColony.pin)) {
         document.getElementById('pinLock').classList.add('hidden');
         document.getElementById('actualPostBox').classList.remove('hidden');
-        
-        if (typeof triggerAlert === "function") {
-            triggerAlert('Access Granted', 'Systems online. You are clear to broadcast.', '🔓');
-        }
+        if (window.triggerAlert) triggerAlert('Access Granted', 'Broadcast systems online.', '🔓');
     } else {
-        const input = document.getElementById('unlockPin');
-        input.value = '';
-        input.classList.add('border-red-500', 'animate-shake'); // Add a shake effect if you have the CSS
-        setTimeout(() => input.classList.remove('animate-shake'), 500);
-        
-        if (typeof triggerAlert === "function") {
-            triggerAlert('Access Denied', 'Invalid Founder PIN code.', '🚫');
-        } else {
-            alert("Invalid PIN!");
-        }
+        document.getElementById('unlockPin').value = '';
+        if (window.triggerAlert) triggerAlert('Access Denied', 'Invalid PIN code.', '🚫');
     }
 }
 
-function publishAdminPost() {
+async function publishAdminPost() {
     const input = document.getElementById('adminPostInput');
-    const text = input.value.trim();
+    const content = input.value.trim();
+    if (!content) return;
 
-    if (!text) return;
+    const { data: { user } } = await supabase.auth.getUser();
 
-    const newPost = {
-        id: 'cp-' + Date.now(),
-        colonyId: currentColony.id,
-        text: text,
-        timestamp: 'Just now',
-        author: currentColony.assignedAdmin || 'Founder',
-        authorImg: currentColony.image || '/IMG/Logo.jpeg'
-    };
+    const { error } = await supabase
+        .from('community_posts')
+        .insert([{
+            community_id: currentColony.id,
+            user_id: user.id,
+            content: content,
+            is_announcement: true
+        }]);
 
-    const storageKey = `posts_${currentColony.id}`;
-    const colonyPosts = JSON.parse(localStorage.getItem(storageKey)) || [];
-    colonyPosts.unshift(newPost);
-    localStorage.setItem(storageKey, JSON.stringify(colonyPosts));
+    if (error) {
+        if (window.triggerAlert) triggerAlert('Error', 'Failed to send signal.', '📡');
+        return;
+    }
 
     input.value = '';
-    renderColonyPosts();
+    renderColonyPosts(currentColony.id);
 }
 
-function renderColonyPosts() {
+async function renderColonyPosts(id) {
     const feed = document.getElementById('colonyFeed');
-    const storageKey = `posts_${currentColony.id}`;
-    const posts = JSON.parse(localStorage.getItem(storageKey)) || [];
+    
+    const { data: posts, error } = await supabase
+        .from('community_posts')
+        .select(`
+            *,
+            profiles:user_id ( username, avatar_url )
+        `)
+        .eq('community_id', id)
+        .order('created_at', { ascending: false });
 
-    if (posts.length === 0) {
-        feed.innerHTML = `
-            <div class="text-center py-24 bg-white rounded-[40px] border-2 border-dashed border-slate-50">
-                <div class="text-4xl mb-4 opacity-10">📡</div>
-                <p class="text-[10px] font-black text-slate-300 uppercase tracking-widest">Awaiting founder signals...</p>
-            </div>
-        `;
+    if (error || !posts || posts.length === 0) {
+        feed.innerHTML = `<div class="text-center py-24 bg-white rounded-[40px] border-2 border-dashed border-slate-50"><p class="text-[10px] font-black text-slate-300 uppercase tracking-widest">Awaiting founder signals...</p></div>`;
         return;
     }
 
     feed.innerHTML = posts.map(post => `
         <div class="bg-white p-8 rounded-[40px] border border-slate-100 shadow-sm mb-6 animate-slide">
-            <div class="flex items-center justify-between mb-6">
-                <div class="flex items-center gap-3">
-                    <img src="${post.authorImg}" class="w-10 h-10 rounded-2xl object-cover ring-4 ring-slate-50">
-                    <div>
-                        <div class="flex items-center gap-2">
-                            <h4 class="text-xs font-black text-slate-800 uppercase">${post.author}</h4>
-                            <span class="px-2 py-0.5 bg-cyan-500 text-white text-[7px] font-black uppercase rounded-md">Founder</span>
-                        </div>
-                        <p class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">${post.timestamp}</p>
+            <div class="flex items-center gap-3 mb-6">
+                <img src="${post.profiles?.avatar_url || '/IMG/Logo.jpeg'}" class="w-10 h-10 rounded-2xl object-cover ring-4 ring-slate-50">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h4 class="text-xs font-black text-slate-800 uppercase">${post.profiles?.username || 'Founder'}</h4>
+                        ${post.is_announcement ? '<span class="px-2 py-0.5 bg-cyan-500 text-white text-[7px] font-black uppercase rounded-md">Founder</span>' : ''}
                     </div>
+                    <p class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">${new Date(post.created_at).toLocaleDateString()}</p>
                 </div>
             </div>
-            <p class="text-sm text-slate-600 leading-relaxed font-medium">${post.text}</p>
+            <p class="text-sm text-slate-600 leading-relaxed font-medium">${post.content}</p>
         </div>
     `).join('');
 }
