@@ -283,7 +283,7 @@ async function leaveCommunity() {
         localStorage.setItem('userCommunities', JSON.stringify(list));
 
         safeAlert("Left Colony", `You have abandoned ${currentColony.name}.`, "👋");
-        setTimeout(() => window.location.href = "/PAGES/communities.html", 1800);
+        setTimeout(() => window.location.href = "/PAGES/community.html", 1800);
     }
 }
 
