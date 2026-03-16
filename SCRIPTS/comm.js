@@ -1,10 +1,19 @@
 // --- INITIALIZATION ---
 document.addEventListener('DOMContentLoaded', async () => {
-    // Safety check for the Supabase engine
+    // 1. Safety check for the Supabase engine
     if (typeof supabase === 'undefined') {
-        console.error("Terminal: Supabase not found. Check script order.");
+        console.error("Terminal: Supabase not found. Check script order in HTML.");
+        // We manually trigger alert here because triggerAlert depends on the script being healthy
+        const modal = document.getElementById('globalModal');
+        if(modal) {
+            document.getElementById('modalTitle').innerText = "⚠️ System Failure";
+            document.getElementById('modalBody').innerText = "Supabase Engine Offline. Please check script load order.";
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
         return;
     }
+    
     await fetchCommunities();
     await loadMyCircles();
 });
@@ -12,13 +21,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 // --- 1. FETCH ALL COMMUNITIES ---
 async function fetchCommunities() {
     const container = document.getElementById('communityContainer');
+    if (!container) return;
+
     container.innerHTML = `
         <div class="p-20 text-center animate-pulse">
             <i class="fa-solid fa-satellite-dish text-4xl text-slate-200 mb-4 block"></i>
             <span class="uppercase font-black text-slate-300 tracking-widest">Scanning for signals...</span>
         </div>`;
 
-    // Fetch communities and their member counts
     const { data: communities, error } = await supabase
         .from('communities')
         .select(`*, community_members(count)`);
@@ -30,7 +40,6 @@ async function fetchCommunities() {
 
     const { data: { user } } = await supabase.auth.getUser();
 
-    // Fetch user's current memberships to "disable" joined buttons
     let myJoinedIds = [];
     if (user) {
         const { data: memberships } = await supabase
@@ -81,7 +90,7 @@ async function fetchCommunities() {
     }).join('');
 }
 
-// --- 2. CREATE COLONY (Storage + Database) ---
+// --- 2. CREATE COLONY ---
 async function handleCreateColony() {
     const name = document.getElementById('commName')?.value;
     const desc = document.getElementById('commDesc')?.value;
@@ -89,20 +98,22 @@ async function handleCreateColony() {
     const file = document.getElementById('commFile')?.files[0];
 
     if (!name || !desc) {
-        triggerAlert('Entry Denied', 'A name and a vibe are mandatory for new colonies.', '⚠️');
+        triggerAlert('Entry Denied', 'A name and a vibe are mandatory.', '⚠️');
         return;
     }
 
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) {
+        triggerAlert('Auth Error', 'You must be logged in to create communities.', '🔒');
+        return;
+    }
     
-    // Show a "Processing" modal state
-    triggerAlert('Establishing Colony', 'Surveying the area and claiming territory...', '🏗️');
+    triggerAlert('Establishing Colony', 'Claiming territory and securing the perimeter...', '🏗️');
 
     let imageUrl = null;
     if (file) {
         const fileExt = file.name.split('.').pop();
-        const fileName = `${user.id}-${Math.random()}.${fileExt}`;
+        const fileName = `${user.id}-${Date.now()}.${fileExt}`;
         const { error: uploadError } = await supabase.storage
             .from('community-images')
             .upload(fileName, file);
@@ -121,18 +132,14 @@ async function handleCreateColony() {
             image_url: imageUrl,
             founder_id: user.id
         }])
-        .select()
-        .single();
+        .select().single();
 
     if (createError) {
         triggerAlert('Creation Failed', createError.message, '❌');
     } else {
-        // Automatically add founder as an admin member
         await supabase.from('community_members').insert([
             { community_id: colony.id, user_id: user.id, role: 'admin' }
         ]);
-        
-        // Success redirect
         setTimeout(() => { window.location.href = '/PAGES/dashboard.html'; }, 1500);
     }
 }
@@ -141,7 +148,7 @@ async function handleCreateColony() {
 async function handleJoin(commId, commName) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-        triggerAlert('Access Denied', 'You must be logged in to join circles.', '🔒');
+        triggerAlert('Access Denied', 'Log in to join circles.', '🔒');
         return;
     }
 
@@ -150,35 +157,26 @@ async function handleJoin(commId, commName) {
     ]);
 
     if (error) {
-        if (error.code === '23505') {
-            triggerAlert('Status: Active', 'You are already a member of this colony.', '🤝');
-        } else {
-            triggerAlert('Join Failed', error.message, '❌');
-        }
+        triggerAlert('Join Failed', error.code === '23505' ? 'Already a member.' : error.message, '❌');
     } else {
-        triggerAlert('Colony Joined', `Welcome to ${commName}. Synchronizing your dashboard...`, '🤝');
-        // Refresh UI
+        triggerAlert('Colony Joined', `Welcome to ${commName}.`, '🤝');
         await fetchCommunities();
         await loadMyCircles();
     }
 }
 
-// --- 4. LOAD SIDEBAR CIRCLES ---
+// --- 4. SIDEBAR CIRCLES ---
 async function loadMyCircles() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { data: myCircles, error } = await supabase
+    const { data: myCircles } = await supabase
         .from('community_members')
         .select(`communities(id, name, image_url)`)
         .eq('user_id', user.id);
 
-    if (error) return;
-
     const list = document.getElementById('myCirclesList');
-    if (!list) return;
-
-    if (myCircles && myCircles.length > 0) {
+    if (list && myCircles) {
         list.innerHTML = myCircles.map(c => {
             if (!c.communities) return '';
             return `
@@ -186,12 +184,12 @@ async function loadMyCircles() {
                      onclick="window.location.href='open_comm.html?id=${c.communities.id}'">
                     <img src="${c.communities.image_url || '/IMG/Logo.jpeg'}" class="w-8 h-8 rounded-xl object-cover group-hover:rotate-6 transition-transform">
                     <span class="text-[10px] font-black uppercase text-slate-700 tracking-tighter">${c.communities.name}</span>
-                </div>
-            `;
+                </div>`;
         }).join('');
     }
 }
-// --- 5. REFRESH LOGIC (Database Sync) ---
+
+// --- 5. REFRESH LOGIC ---
 async function handleRefresh() {
     const icon = document.getElementById('refreshIcon');
     const text = document.getElementById('refreshText');
@@ -199,91 +197,70 @@ async function handleRefresh() {
     
     if (!icon || !text) return;
 
-    // Start Animation
     icon.classList.add('fa-spin');
     text.innerText = "Scanning...";
     container.style.opacity = "0.5";
-    container.style.filter = "blur(4px)";
 
-    try {
-        // Re-run the fetch functions to get new data from Supabase
-        await fetchCommunities();
-        await loadMyCircles();
-        
-        // Brief delay so the user sees the "Work" being done
-        setTimeout(() => {
-            icon.classList.remove('fa-spin');
-            text.innerText = "Refresh";
-            container.style.opacity = "1";
-            container.style.filter = "none";
-            
-            // Your Dec 21st rule centered alert
-            triggerAlert('Signals Locked', 'Community list is now up to date.', '🔄');
-        }, 1500);
-
-    } catch (err) {
-        console.error("Refresh failed:", err);
+    await fetchCommunities();
+    await loadMyCircles();
+    
+    setTimeout(() => {
         icon.classList.remove('fa-spin');
-        text.innerText = "Refresh Failed";
-    }
+        text.innerText = "Refresh";
+        container.style.opacity = "1";
+        triggerAlert('Signals Locked', 'List updated.', '🔄');
+    }, 1000);
 }
-// --- 6. MODAL CONTROLS ---
 
-// Opens the "Found a New Community" Creator Modal
+// --- 6. MODAL & PREVIEW CONTROLS ---
 function openCreatorModal() {
     const modal = document.getElementById('creatorModal');
     if (modal) {
         modal.classList.remove('hidden');
         modal.classList.add('flex');
-        // Reset the image preview if any was left over
-        const previewBox = document.getElementById('imagePreviewContainer');
-        if (previewBox) {
-            previewBox.innerHTML = `
-                <i class="fa-solid fa-camera text-slate-300 mb-2 group-hover:text-cyan-500 transition"></i>
-                <span class="text-[9px] font-black text-slate-400 uppercase">Upload Cover Image</span>
-                <input type="file" id="commFile" class="hidden" onchange="previewCommImage(this)">
-            `;
-        }
     }
 }
 
-// Closes the Creator Modal
 function closeCreatorModal() {
     const modal = document.getElementById('creatorModal');
-    if (modal) {
-        modal.classList.replace('flex', 'hidden');
-    }
+    if (modal) modal.classList.replace('flex', 'hidden');
 }
 
-// Helper to toggle the PIN field based on role selection
 function togglePinField(role) {
     const pinField = document.getElementById('pinField');
-    if (pinField) {
-        if (role === 'admin') {
-            pinField.classList.remove('hidden');
-            pinField.classList.add('animate-[modalSlideUp_0.3s_ease-out]');
-        } else {
-            pinField.classList.add('hidden');
-        }
-    }
+    if (pinField) role === 'admin' ? pinField.classList.remove('hidden') : pinField.classList.add('hidden');
 }
 
-// Preview image logic for the creator modal
 function previewCommImage(input) {
     if (input.files && input.files[0]) {
         const reader = new FileReader();
-        reader.onload = function(e) {
+        reader.onload = (e) => {
             const previewBox = document.getElementById('imagePreviewContainer');
             if (previewBox) {
                 previewBox.innerHTML = `
                     <img src="${e.target.result}" class="w-full h-full object-cover rounded-3xl">
                     <div class="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 hover:opacity-100 transition rounded-3xl cursor-pointer" onclick="document.getElementById('commFile').click()">
-                        <span class="text-[10px] text-white font-black uppercase tracking-widest">Change Image</span>
+                        <span class="text-[10px] text-white font-black uppercase">Change Image</span>
                     </div>
-                    <input type="file" id="commFile" class="hidden" onchange="previewCommImage(this)">
-                `;
+                    <input type="file" id="commFile" class="hidden" onchange="previewCommImage(this)">`;
             }
         };
         reader.readAsDataURL(input.files[0]);
     }
+}
+
+// --- 7. GLOBAL ALERT (Centered Modal) ---
+function triggerAlert(title, content, emoji = '🔔') {
+    const modal = document.getElementById('globalModal');
+    if (modal) {
+        document.getElementById('modalTitle').innerText = `${emoji} ${title}`;
+        document.getElementById('modalBody').innerHTML = content;
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+}
+
+function closeGlobalModal() {
+    const modal = document.getElementById('globalModal');
+    if (modal) modal.classList.replace('flex', 'hidden');
 }
