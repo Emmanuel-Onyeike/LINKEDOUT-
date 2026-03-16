@@ -467,3 +467,20 @@ html, body {
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-left: 4px solid #22c55e; /* Green for Success */
 }
+/* Styling the scrollbar for the recommendation list */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #f1f5f9; /* slate-100 */
+    border-radius: 10px;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #1e293b; /* slate-800 */
+}
