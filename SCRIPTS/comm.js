@@ -264,3 +264,74 @@ function closeGlobalModal() {
     const modal = document.getElementById('globalModal');
     if (modal) modal.classList.replace('flex', 'hidden');
 }
+async function loadMyCircles() {
+    const list = document.getElementById('sidebarCommList');
+    const emptyState = document.getElementById('emptyCommState');
+    const skeleton = document.getElementById('commSkeleton');
+
+    if (!list) return;
+
+    // 1. Get current user
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+        if (skeleton) skeleton.classList.add('hidden');
+        if (emptyState) emptyState.classList.remove('hidden');
+        return;
+    }
+
+    // 2. Fetch all memberships (This includes colonies they created because they are added as 'admin' on creation)
+    const { data: memberships, error } = await supabase
+        .from('community_members')
+        .select(`
+            role,
+            communities (
+                id,
+                name,
+                image_url
+            )
+        `)
+        .eq('user_id', user.id);
+
+    // 3. UI Handling
+    if (skeleton) skeleton.classList.add('hidden');
+
+    if (error || !memberships || memberships.length === 0) {
+        if (emptyState) emptyState.classList.remove('hidden');
+        list.innerHTML = ''; // Keep it clean
+        if (emptyState) list.appendChild(emptyState); 
+        return;
+    }
+
+    // Hide empty state if data exists
+    if (emptyState) emptyState.classList.add('hidden');
+
+    // 4. Render the list
+    list.innerHTML = memberships.map(m => {
+        const comm = m.communities;
+        if (!comm) return '';
+        
+        // Add a small "Crown" icon if they are the admin/founder
+        const badge = m.role === 'admin' ? '<i class="fa-solid fa-crown text-[8px] text-amber-400 ml-1"></i>' : '';
+
+        return `
+            <div class="group flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 transition-all cursor-pointer" 
+                 onclick="window.location.href='/PAGES/open_comm.html?id=${comm.id}'">
+                <div class="flex items-center gap-3">
+                    <div class="relative w-8 h-8 shrink-0">
+                        <img src="${comm.image_url || '/IMG/Logo.jpeg'}" 
+                             class="w-full h-full object-cover rounded-lg shadow-sm group-hover:scale-110 transition-transform">
+                    </div>
+                    <div class="flex flex-col">
+                        <span class="text-[10px] font-black uppercase text-slate-700 tracking-tighter flex items-center">
+                            ${comm.name} ${badge}
+                        </span>
+                        <span class="text-[8px] text-slate-400 font-medium uppercase tracking-widest">
+                            ${m.role === 'admin' ? 'Founder' : 'Member'}
+                        </span>
+                    </div>
+                </div>
+                <i class="fa-solid fa-chevron-right text-[8px] text-slate-300 opacity-0 group-hover:opacity-100 transition-all mr-1"></i>
+            </div>
+        `;
+    }).join('');
+}
