@@ -584,53 +584,56 @@ function showPromotionModal(tierName) {
 }
 
 // Ensure this is NOT wrapped inside another function
-function toggleLinkedOutModal() {
-    const overlay = document.getElementById('linkedOutModalOverlay');
-    const content = document.getElementById('linkedOutDropdown');
+// --- UNIQUE MODAL SYSTEM V1 ---
+window.toggleLinkedOutModalV1 = function() {
+    const overlayV1 = document.getElementById('linkedOutModalOverlayV1');
+    const contentV1 = document.getElementById('linkedOutDropdownV1');
     
-    if (!overlay) {
-        console.error("Modal Overlay ID 'linkedOutModalOverlay' missing from HTML");
+    if (!overlayV1) {
+        console.error("Critical: Modal ID 'linkedOutModalOverlayV1' not found.");
         return;
     }
 
-    const isHidden = overlay.classList.contains('hidden');
+    const isOpening = overlayV1.classList.contains('hidden');
 
-    if (isHidden) {
-        // OPEN LOGIC
-        overlay.classList.remove('hidden');
-        overlay.classList.add('flex');
-        // Small timeout to allow the browser to register the flex display before animating
+    if (isOpening) {
+        // OPEN
+        overlayV1.classList.remove('hidden');
+        overlayV1.classList.add('flex');
+        
+        // Timeout for transition trigger
         setTimeout(() => {
-            overlay.style.opacity = '1';
-            if (content) {
-                content.classList.remove('scale-95', 'opacity-0');
-                content.classList.add('scale-100', 'opacity-100');
+            overlayV1.classList.add('opacity-100');
+            if (contentV1) {
+                contentV1.classList.remove('scale-95', 'opacity-0');
+                contentV1.classList.add('scale-100', 'opacity-100');
             }
         }, 10);
-        document.body.style.overflow = 'hidden';
+        document.body.style.overflow = 'hidden'; 
     } else {
-        // CLOSE LOGIC
-        overlay.style.opacity = '0';
-        if (content) {
-            content.classList.remove('scale-100', 'opacity-100');
-            content.classList.add('scale-95', 'opacity-0');
+        // CLOSE
+        if (contentV1) {
+            contentV1.classList.remove('scale-100', 'opacity-100');
+            contentV1.classList.add('scale-95', 'opacity-0');
         }
+        overlayV1.classList.remove('opacity-100');
+        
         setTimeout(() => {
-            overlay.classList.add('hidden');
-            overlay.classList.remove('flex');
-            document.body.style.overflow = '';
-        }, 300); // Matches your transition duration
+            overlayV1.classList.add('hidden');
+            overlayV1.classList.remove('flex');
+            document.body.style.overflow = ''; 
+        }, 300);
     }
-}
+};
 
-// Add a click-outside-to-close feature for better UX
+// Close when clicking the backdrop
 document.addEventListener('click', (e) => {
-    const overlay = document.getElementById('linkedOutModalOverlay');
-    const content = document.getElementById('linkedOutDropdown');
-    if (e.target === overlay) {
-        toggleLinkedOutModal();
+    const overlayV1 = document.getElementById('linkedOutModalOverlayV1');
+    if (e && e.target === overlayV1) {
+        window.toggleLinkedOutModalV1();
     }
 });
+
 
 async function incrementPostView(postId) {
     const { error } = await supabase.rpc('increment_post_views', { target_post_id: postId });
