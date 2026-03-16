@@ -65,9 +65,14 @@
                     </div>
                 </div>
 
-                <button id="leaveButton" onclick="leaveCommunity()" class="w-full mt-4 py-4 rounded-2xl text-[9px] font-black uppercase tracking-widest text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all border border-transparent hover:border-red-100">
-                    Abandon Colony
-                </button>
+               <button 
+    id="leaveButton" 
+    onclick="leaveCommunity()"
+    class="w-full mt-4 py-4 rounded-2xl text-[9px] font-black uppercase tracking-widest text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all border border-transparent hover:border-red-100 disabled:opacity-50 disabled:cursor-not-allowed"
+    ${userRole === 'admin' ? 'disabled' : ''}  <!-- optional: prevent founder from leaving easily -->
+>
+    Abandon Colony
+</button>
             </div>
 
             <div class="bg-white border border-slate-200 rounded-[40px] p-8 shadow-sm">
