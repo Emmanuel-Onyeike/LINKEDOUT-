@@ -583,57 +583,55 @@ function showPromotionModal(tierName) {
     document.body.appendChild(modal);
 }
 
-// Ensure this is NOT wrapped inside another function
-// --- UNIQUE MODAL SYSTEM V1 ---
-window.toggleLinkedOutModalV1 = function() {
-    const overlayV1 = document.getElementById('linkedOutModalOverlayV1');
-    const contentV1 = document.getElementById('linkedOutDropdownV1');
-    
-    if (!overlayV1) {
-        console.error("Critical: Modal ID 'linkedOutModalOverlayV1' not found.");
-        return;
-    }
+// --- DASHBOARD SUITES MODAL SYSTEM ---
+(function() {
+    const initModalV1 = () => {
+        const triggerBtn = document.getElementById('suitesTriggerBtnV1');
+        const closeBtn = document.getElementById('suitesCloseBtnV1');
+        const overlay = document.getElementById('linkedOutModalOverlayV1');
+        const content = document.getElementById('linkedOutDropdownV1');
 
-    const isOpening = overlayV1.classList.contains('hidden');
+        if (!triggerBtn || !overlay) return;
 
-    if (isOpening) {
-        // OPEN
-        overlayV1.classList.remove('hidden');
-        overlayV1.classList.add('flex');
-        
-        // Timeout for transition trigger
-        setTimeout(() => {
-            overlayV1.classList.add('opacity-100');
-            if (contentV1) {
-                contentV1.classList.remove('scale-95', 'opacity-0');
-                contentV1.classList.add('scale-100', 'opacity-100');
+        const toggle = (show) => {
+            if (show) {
+                overlay.classList.remove('hidden');
+                overlay.classList.add('flex');
+                setTimeout(() => {
+                    overlay.classList.add('opacity-100');
+                    content?.classList.remove('scale-95', 'opacity-0');
+                    content?.classList.add('scale-100', 'opacity-100');
+                }, 10);
+                document.body.style.overflow = 'hidden';
+            } else {
+                overlay.classList.remove('opacity-100');
+                content?.classList.remove('scale-100', 'opacity-100');
+                content?.classList.add('scale-95', 'opacity-0');
+                setTimeout(() => {
+                    overlay.classList.add('hidden');
+                    overlay.classList.remove('flex');
+                    document.body.style.overflow = '';
+                }, 300);
             }
-        }, 10);
-        document.body.style.overflow = 'hidden'; 
-    } else {
-        // CLOSE
-        if (contentV1) {
-            contentV1.classList.remove('scale-100', 'opacity-100');
-            contentV1.classList.add('scale-95', 'opacity-0');
-        }
-        overlayV1.classList.remove('opacity-100');
+        };
+
+        // Attach listeners directly in JS
+        triggerBtn.addEventListener('click', () => toggle(true));
+        if (closeBtn) closeBtn.addEventListener('click', () => toggle(false));
         
-        setTimeout(() => {
-            overlayV1.classList.add('hidden');
-            overlayV1.classList.remove('flex');
-            document.body.style.overflow = ''; 
-        }, 300);
-    }
-};
+        // Close on backdrop click
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) toggle(false);
+        });
+    };
 
-// Close when clicking the backdrop
-document.addEventListener('click', (e) => {
-    const overlayV1 = document.getElementById('linkedOutModalOverlayV1');
-    if (e && e.target === overlayV1) {
-        window.toggleLinkedOutModalV1();
+    // Run once DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initModalV1);
+    } else {
+        initModalV1();
     }
-});
-
+})();
 
 async function incrementPostView(postId) {
     const { error } = await supabase.rpc('increment_post_views', { target_post_id: postId });
