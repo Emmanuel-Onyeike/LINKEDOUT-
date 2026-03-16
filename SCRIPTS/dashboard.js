@@ -583,55 +583,56 @@ function showPromotionModal(tierName) {
     document.body.appendChild(modal);
 }
 
-// --- DASHBOARD SUITES MODAL SYSTEM ---
-(function() {
-    const initModalV1 = () => {
-        const triggerBtn = document.getElementById('suitesTriggerBtnV1');
-        const closeBtn = document.getElementById('suitesCloseBtnV1');
-        const overlay = document.getElementById('linkedOutModalOverlayV1');
-        const content = document.getElementById('linkedOutDropdownV1');
+// --- FORCE-GLOBAL SUITES SYSTEM ---
+window.toggleLinkedOutModalV1 = function(e) {
+    if (e) e.preventDefault(); // Stop any ghost actions
+    
+    const overlay = document.getElementById('linkedOutModalOverlayV1');
+    const content = document.getElementById('linkedOutDropdownV1');
 
-        if (!triggerBtn || !overlay) return;
-
-        const toggle = (show) => {
-            if (show) {
-                overlay.classList.remove('hidden');
-                overlay.classList.add('flex');
-                setTimeout(() => {
-                    overlay.classList.add('opacity-100');
-                    content?.classList.remove('scale-95', 'opacity-0');
-                    content?.classList.add('scale-100', 'opacity-100');
-                }, 10);
-                document.body.style.overflow = 'hidden';
-            } else {
-                overlay.classList.remove('opacity-100');
-                content?.classList.remove('scale-100', 'opacity-100');
-                content?.classList.add('scale-95', 'opacity-0');
-                setTimeout(() => {
-                    overlay.classList.add('hidden');
-                    overlay.classList.remove('flex');
-                    document.body.style.overflow = '';
-                }, 300);
-            }
-        };
-
-        // Attach listeners directly in JS
-        triggerBtn.addEventListener('click', () => toggle(true));
-        if (closeBtn) closeBtn.addEventListener('click', () => toggle(false));
-        
-        // Close on backdrop click
-        overlay.addEventListener('click', (e) => {
-            if (e.target === overlay) toggle(false);
-        });
-    };
-
-    // Run once DOM is ready
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initModalV1);
-    } else {
-        initModalV1();
+    if (!overlay) {
+        console.error("SYSTEM ERROR: Modal Overlay 'linkedOutModalOverlayV1' not found in HTML.");
+        return;
     }
-})();
+
+    const isOpening = overlay.classList.contains('hidden');
+
+    if (isOpening) {
+        overlay.classList.remove('hidden');
+        overlay.classList.add('flex');
+        
+        // Use requestAnimationFrame for smoother rendering than setTimeout
+        requestAnimationFrame(() => {
+            overlay.classList.add('opacity-100');
+            if (content) {
+                content.classList.remove('scale-95', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+            }
+        });
+        document.body.style.overflow = 'hidden';
+    } else {
+        overlay.classList.remove('opacity-100');
+        if (content) {
+            content.classList.remove('scale-100', 'opacity-100');
+            content.classList.add('scale-95', 'opacity-0');
+        }
+        
+        setTimeout(() => {
+            overlay.classList.add('hidden');
+            overlay.classList.remove('flex');
+            document.body.style.overflow = '';
+        }, 300);
+    }
+};
+
+// Add a direct listener as a backup
+document.addEventListener('DOMContentLoaded', () => {
+    const btn = document.getElementById('suitesTriggerBtnV1');
+    if (btn) {
+        btn.onclick = window.toggleLinkedOutModalV1;
+        console.log("Terminal: Suites Button Wired Successfully");
+    }
+});
 
 async function incrementPostView(postId) {
     const { error } = await supabase.rpc('increment_post_views', { target_post_id: postId });
