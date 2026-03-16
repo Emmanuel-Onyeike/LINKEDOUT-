@@ -440,30 +440,77 @@ function closeModal() {
 //  4. COMMUNITIES + RECOMMENDATIONS + PROMOTION + LINKEDOUT DROPDOWN
 // =============================================================================
 
-function syncSidebarCommunities() {
-    const communityList = JSON.parse(localStorage.getItem('userCommunities')) || [];
-    const sidebarCard = document.getElementById('myCommunitiesCard');
-    if (!sidebarCard) return;
+async function syncSidebarCommunities() {
+    const listWrapper = document.getElementById('sidebarCommList');
+    const skeleton = document.getElementById('commSkeleton');
+    const emptyState = document.getElementById('emptyCommState');
 
-    let listWrapper = document.getElementById('sidebarCommList');
-    if (!listWrapper) {
-        listWrapper = document.createElement('div');
-        listWrapper.id = 'sidebarCommList';
-        listWrapper.className = 'space-y-3 mb-4';
-        sidebarCard.querySelector('.flex.justify-between')?.insertAdjacentElement('afterend', listWrapper);
+    if (!listWrapper) return;
+
+    // 1. Show skeleton while we check auth/data
+    if (skeleton) skeleton.classList.remove('hidden');
+    if (emptyState) emptyState.classList.add('hidden');
+
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+        if (skeleton) skeleton.classList.add('hidden');
+        if (emptyState) emptyState.classList.remove('hidden');
+        return;
     }
 
-    listWrapper.innerHTML = communityList.slice(0, 3).map(comm => `
-        <div class="flex items-center justify-between p-2 rounded-2xl hover:bg-slate-50 transition-all border border-transparent hover:border-slate-100">
-            <div class="flex items-center gap-3">
-                <img src="${comm.image || '/IMG/Logo.jpeg'}" class="w-10 h-10 rounded-xl object-cover">
-                <h4 class="text-[10px] font-black text-slate-800 uppercase truncate max-w-[80px]">${comm.name}</h4>
-            </div>
-            <button onclick="window.location.href='/PAGES/open_comms.html?id=${comm.id}'" class="bg-slate-50 text-slate-800 px-3 py-1.5 rounded-xl text-[8px] font-black uppercase">Open</button>
-        </div>
-    `).join('');
-}
+    // 2. Fetch LIVE from Supabase (Don't trust LocalStorage)
+    const { data: memberships, error } = await supabase
+        .from('community_members')
+        .select(`
+            role,
+            communities (id, name, image_url)
+        `)
+        .eq('user_id', user.id);
 
+    // 3. Cleanup UI states
+    if (skeleton) skeleton.classList.add('hidden');
+
+    if (error || !memberships || memberships.length === 0) {
+        if (emptyState) emptyState.classList.remove('hidden');
+        listWrapper.querySelectorAll('.community-item').forEach(el => el.remove());
+        return;
+    }
+
+    if (emptyState) emptyState.classList.add('hidden');
+
+    // 4. Render with a "Fragment" to prevent flickering
+    const html = memberships.map(m => {
+        const comm = m.communities;
+        if (!comm) return '';
+        const isFounder = m.role === 'admin';
+
+        return `
+            <div class="community-item flex items-center justify-between p-2 rounded-2xl hover:bg-slate-50 transition-all border border-transparent hover:border-slate-100 group">
+                <div class="flex items-center gap-3">
+                    <img src="${comm.image_url || '/IMG/Logo.jpeg'}" class="w-9 h-9 rounded-xl object-cover shadow-sm group-hover:rotate-3 transition-transform">
+                    <div class="flex flex-col overflow-hidden">
+                        <h4 class="text-[10px] font-black text-slate-800 uppercase truncate max-w-[100px]">
+                            ${comm.name} ${isFounder ? '<i class="fa-solid fa-crown text-[8px] text-amber-400 ml-1"></i>' : ''}
+                        </h4>
+                        <span class="text-[8px] text-slate-400 font-bold uppercase tracking-tighter">${m.role}</span>
+                    </div>
+                </div>
+                <button onclick="window.location.href='/PAGES/open_comm.html?id=${comm.id}'" 
+                        class="bg-white border border-slate-100 text-slate-800 px-3 py-1.5 rounded-xl text-[8px] font-black uppercase hover:bg-cyan-500 hover:text-white hover:border-cyan-500 transition-all shadow-sm">
+                    Open
+                </button>
+            </div>
+        `;
+    }).join('');
+
+    // Update only the dynamic part, leaving the EmptyState/Skeleton divs intact
+    listWrapper.innerHTML = `
+        ${document.getElementById('emptyCommState').outerHTML}
+        ${document.getElementById('commSkeleton').outerHTML}
+        ${html}
+    `;
+}
 async function loadRecommendations() {
     const listContainer = document.getElementById('recommendationList');
     if (!listContainer) return;
