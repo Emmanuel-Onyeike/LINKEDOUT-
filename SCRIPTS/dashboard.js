@@ -604,3 +604,24 @@ function handleShare(postId) {
 function openComments(postId) {
     window.location.href = `/PAGES/post.html?id=${postId}`;
 }
+// Function to show the "Not Ready" modal
+window.showFeatureAlert = function(featureName) {
+    const modal = document.getElementById('globalModal');
+    const title = document.getElementById('modalTitle');
+    const body = document.getElementById('modalBody');
+
+    if (modal && title && body) {
+        title.innerText = "SIGNAL: OFFLINE";
+        body.innerText = `${featureName} is not ready yet. Check the next update for terminal clearance.`;
+        
+        // Ensure modal is centered and visible
+        modal.classList.remove('hidden');
+        modal.classList.add('flex', 'items-center', 'justify-center');
+        
+        // Lock background scrolling
+        document.body.style.overflow = 'hidden';
+    } else {
+        // Fallback if modal elements are missing
+        alert(`${featureName} is coming in the next update!`);
+    }
+};
